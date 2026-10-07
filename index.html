@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DoseCalc EDU</title>
+  <meta name="description" content="Learn radiation therapy dose calculations step by step: PDD, TMR, monitor units, BED and more. Interactive lessons, calculators that show their work, and unlimited practice problems.">
+  <meta name="theme-color" content="#1f5fd6">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f5fd6'/%3E%3Cpath d='M32 14 L32 50 M14 32 L50 32 M19 19 L45 45 M45 19 L19 45' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%23ffb454'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="brand" href="#/" aria-label="DoseCalc EDU home">
+        <svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true"><rect width="64" height="64" rx="14" fill="var(--primary)"/><path d="M32 14 L32 50 M14 32 L50 32 M19 19 L45 45 M45 19 L19 45" stroke="#fff" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="32" r="7" fill="#ffb454"/></svg>
+        <span>DoseCalc <b>EDU</b></span>
+      </a>
+      <nav class="nav" aria-label="Main">
+        <a id="nav-learn" href="#/learn">Learn</a>
+        <a id="nav-tools" href="#/tools">Calculators</a>
+        <a id="nav-practice" href="#/practice">Practice</a>
+        <a id="nav-reference" href="#/reference">Formulas</a>
+      </nav>
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle light or dark theme" title="Toggle light / dark">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="view" tabindex="-1" aria-live="off"><noscript><p class="wrap">DoseCalc EDU needs JavaScript to run. Please enable it in your browser.</p></noscript></main>
+
+  <footer class="footer">
+    <p><b>Educational use only.</b> Generic teaching data. Never use for real patient treatment planning.</p>
+  </footer>
+
+  <script src="js/calc.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/calculators.js"></script>
+  <script src="js/lessons.js"></script>
+  <script src="js/practice.js"></script>
+  <script src="js/reference.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

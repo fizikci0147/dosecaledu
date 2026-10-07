@@ -1,0 +1,12 @@
+{
+  "name": "dosecaledu",
+  "version": "1.0.0",
+  "description": "Learn radiation therapy dose calculations step by step. Interactive lessons, calculators that show their work, and practice problems.",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/calc.test.js",
+    "build": "node tools/build-single-file.js",
+    "start": "npx --yes serve ."
+  },
+  "engines": { "node": ">=18" }
+}

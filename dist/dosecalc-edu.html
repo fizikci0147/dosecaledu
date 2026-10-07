@@ -1,0 +1,2662 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DoseCalc EDU</title>
+  <meta name="description" content="Learn radiation therapy dose calculations step by step: PDD, TMR, monitor units, BED and more. Interactive lessons, calculators that show their work, and unlimited practice problems.">
+  <meta name="theme-color" content="#1f5fd6">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f5fd6'/%3E%3Cpath d='M32 14 L32 50 M14 32 L50 32 M19 19 L45 45 M45 19 L19 45' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%23ffb454'/%3E%3C/svg%3E">
+  <style>
+/* DoseCalc EDU styles. Tokens first; dark mode redefines them. */
+:root {
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface-2: #eef2f8;
+  --text: #14202e;
+  --muted: #576a80;
+  --border: #d8e0eb;
+  --primary: #1f5fd6;
+  --primary-hover: #1a50b5;
+  --primary-ink: #ffffff;
+  --primary-soft: #e3ecfd;
+  --accent: #d9731a;
+  --accent-soft: #fdf0e1;
+  --good: #14804f;
+  --good-soft: #e1f5ec;
+  --bad: #c0392b;
+  --bad-soft: #fbe9e6;
+  --warn-soft: #fff4d6;
+  --warn: #8a5a00;
+  --s0: #1f5fd6;
+  --s1: #d9731a;
+  --s2: #7b57d1;
+  --grid: #e3e9f2;
+  --shadow: 0 1px 2px rgba(20, 32, 46, .06), 0 6px 20px rgba(20, 32, 46, .06);
+  --radius: 14px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1420; --surface: #151d2c; --surface-2: #1c2639; --text: #e8eef8; --muted: #9bacc2;
+    --border: #2a3750; --primary: #5b95ff; --primary-hover: #7aa9ff; --primary-ink: #0b1220; --primary-soft: #1a2a4a;
+    --accent: #ffa24d; --accent-soft: #3a2a14; --good: #4fd193; --good-soft: #12301f; --bad: #ff8a7a; --bad-soft: #3a1b18;
+    --warn-soft: #3a2f10; --warn: #ffd37a; --s0: #6aa2ff; --s1: #ffa24d; --s2: #b79bff; --grid: #26324a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1420; --surface: #151d2c; --surface-2: #1c2639; --text: #e8eef8; --muted: #9bacc2;
+  --border: #2a3750; --primary: #5b95ff; --primary-hover: #7aa9ff; --primary-ink: #0b1220; --primary-soft: #1a2a4a;
+  --accent: #ffa24d; --accent-soft: #3a2a14; --good: #4fd193; --good-soft: #12301f; --bad: #ff8a7a; --bad-soft: #3a1b18;
+  --warn-soft: #3a2f10; --warn: #ffd37a; --s0: #6aa2ff; --s1: #ffa24d; --s2: #b79bff; --grid: #26324a;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .3);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--font); }
+h1, h2, h3, h4 { line-height: 1.25; margin: 0 0 .5em; letter-spacing: -.01em; }
+h1 { font-size: clamp(1.9rem, 4.5vw, 2.8rem); }
+h2 { font-size: 1.6rem; }
+h3 { font-size: 1.2rem; margin-top: 1.6em; }
+h4 { font-size: 1rem; }
+p { margin: 0 0 1em; }
+a { color: var(--primary); }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+.spaced { margin-top: 2.5rem; }
+.skip { position: absolute; left: -999px; top: 0; background: var(--primary); color: var(--primary-ink); padding: .5rem 1rem; z-index: 100; }
+.skip:focus { left: 8px; top: 8px; }
+:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; border-radius: 6px; }
+#view:focus { outline: none; }
+
+/* Layout */
+.topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+.topbar-in { max-width: 1100px; margin: 0 auto; padding: .6rem 16px; display: flex; align-items: center; gap: 1rem; }
+.brand { display: flex; align-items: center; gap: .6rem; text-decoration: none; color: var(--text); font-weight: 500; font-size: 1.1rem; white-space: nowrap; }
+.brand b { color: var(--primary); }
+.nav { display: flex; gap: .25rem; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+.nav a { color: var(--muted); text-decoration: none; padding: .45rem .8rem; border-radius: 999px; font-weight: 500; white-space: nowrap; }
+.nav a:hover { background: var(--surface-2); color: var(--text); }
+.nav a.active { background: var(--primary-soft); color: var(--primary); }
+.icon-btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); width: 38px; height: 38px; border-radius: 10px; cursor: pointer; display: grid; place-items: center; flex: none; }
+.icon-btn:hover { background: var(--surface-2); }
+#view { max-width: 1100px; margin: 0 auto; padding: 24px 16px 56px; min-height: 70vh; }
+.wrap { padding: 1rem; }
+.footer { border-top: 1px solid var(--border); text-align: center; padding: 1.2rem 16px; color: var(--muted); font-size: .875rem; }
+.footer p { margin: 0; }
+@media (max-width: 640px) {
+  .topbar-in { flex-wrap: wrap; row-gap: .4rem; }
+  .nav { order: 3; width: 100%; margin-left: 0; justify-content: space-between; }
+  .nav a { padding: .45rem .55rem; font-size: .92rem; }
+  .icon-btn { margin-left: auto; }
+}
+
+/* Cards, buttons */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; box-shadow: var(--shadow); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: .6rem 1rem; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; min-height: 44px; }
+.btn:hover:not(:disabled) { background: var(--surface-2); }
+.btn.primary { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+.btn.primary:hover:not(:disabled) { background: var(--primary-hover); }
+.btn.big { padding: .8rem 1.3rem; font-size: 1.05rem; }
+.btn.ghost { background: transparent; }
+.btn.small { min-height: 36px; padding: .35rem .8rem; font-size: .875rem; }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.right-aligned { text-align: right; margin-top: 2rem; }
+
+/* Home */
+.hero { display: grid; grid-template-columns: 1fr; gap: 1.5rem; align-items: center; padding: 1rem 0 2rem; }
+@media (min-width: 860px) { .hero { grid-template-columns: 1fr 260px; } }
+.eyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; font-weight: 700; color: var(--accent); margin-bottom: .6rem; }
+.lead { font-size: 1.15rem; color: var(--muted); max-width: 62ch; }
+.cta { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.2rem; }
+.hero-progress { display: flex; align-items: center; gap: 1rem; }
+.ring { width: 76px; height: 76px; flex: none; }
+.ring-bg { fill: none; stroke: var(--surface-2); stroke-width: 7; }
+.ring-fg { fill: none; stroke: var(--primary); stroke-width: 7; stroke-linecap: round; }
+.ring-text { fill: var(--text); font-size: 15px; font-weight: 700; }
+.grid3 { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.grid2 { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.feature h3 { margin-top: .4rem; }
+.f-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--primary-soft); color: var(--primary); display: grid; place-items: center; font-weight: 800; }
+.path { display: grid; gap: .8rem; }
+.lesson-card { display: flex; gap: 1rem; text-decoration: none; color: inherit; align-items: flex-start; transition: transform .12s, border-color .12s; }
+.lesson-card:hover, .tool-card:hover { border-color: var(--primary); transform: translateY(-1px); }
+.lc-num { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); display: grid; place-items: center; font-weight: 800; }
+.lesson-card.complete .lc-num { background: var(--good); color: #fff; }
+.lc-title { font-weight: 700; font-size: 1.05rem; }
+.lc-body p { margin: .2rem 0 .5rem; }
+.lc-meta { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.lvl { font-size: .75rem; font-weight: 700; padding: .15rem .6rem; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.lvl-beginner { background: var(--good-soft); color: var(--good); }
+.lvl-intermediate { background: var(--primary-soft); color: var(--primary); }
+.lvl-advanced { background: var(--accent-soft); color: var(--accent); }
+.tool-card { display: block; text-decoration: none; color: inherit; transition: transform .12s, border-color .12s; }
+.tool-card p { margin: .3rem 0 0; }
+.group { margin-top: 2rem; }
+.disclaimer { margin-top: 2.5rem; background: var(--warn-soft); border-color: transparent; color: var(--text); }
+section + section { margin-top: 2rem; }
+
+/* Lessons */
+.crumbs { font-size: .9rem; color: var(--muted); margin-bottom: .6rem; }
+.lesson-head h1 { margin-top: .4rem; }
+.goals { margin: 1rem 0 1.5rem; }
+.goals ul { margin: .4rem 0 0; padding-left: 1.2rem; }
+.prose { max-width: 78ch; }
+.prose ul, .prose ol { padding-left: 1.3rem; }
+.prose li { margin: .3rem 0; }
+.lesson-body .widget { max-width: none; }
+.formula { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 10px; padding: .9rem 1.1rem; margin: 1rem 0; font-size: 1.1rem; overflow-x: auto; }
+.formula-cap { font-size: .85rem; color: var(--muted); margin-top: .4rem; }
+.formula.small { font-size: 1rem; box-shadow: none; border-left-width: 3px; }
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 .25em; }
+.frac > span:first-child { border-bottom: 1.5px solid currentColor; padding: 0 .35em .12em; }
+.frac > span:last-child { padding: .12em .35em 0; }
+.frac.inline { font-size: .85em; margin: 0; }
+.callout { border-radius: 10px; padding: .8rem 1rem; margin: 1rem 0; border: 1px solid var(--border); background: var(--surface); }
+.callout-title { font-weight: 800; font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; margin-bottom: .2rem; }
+.callout.tip { background: var(--primary-soft); border-color: transparent; }
+.callout.tip .callout-title { color: var(--primary); }
+.callout.example { background: var(--good-soft); border-color: transparent; }
+.callout.example .callout-title { color: var(--good); }
+.callout.warn { background: var(--warn-soft); border-color: transparent; }
+.callout.warn .callout-title { color: var(--warn); }
+.symbols { display: grid; gap: .4rem; margin: 1rem 0; }
+.symbols > div { display: grid; grid-template-columns: 60px 1fr; gap: .8rem; align-items: baseline; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .5rem .8rem; }
+.symbols dt { font-weight: 800; color: var(--primary); font-family: var(--mono); }
+.symbols dd { margin: 0; }
+table.mini { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .95rem; }
+table.mini th, table.mini td { text-align: left; padding: .45rem .7rem; border-bottom: 1px solid var(--border); }
+table.mini th { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+.keypoints { margin-top: 2rem; border-left: 4px solid var(--accent); }
+.keypoints ul { margin: 0; padding-left: 1.2rem; }
+.lesson-nav { display: flex; gap: .6rem; justify-content: space-between; flex-wrap: wrap; margin-top: 1.5rem; }
+.lesson-nav .btn { flex: 0 1 auto; }
+
+/* Widgets, tools, forms */
+.widget { margin: 1.4rem 0; padding: 1rem; border: 1.5px dashed var(--border); border-radius: var(--radius); background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.widget.solo { border: none; padding: 0; background: none; }
+.widget-tag { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: .6rem; }
+.tool { display: grid; gap: 1rem; grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 900px) { .tool { grid-template-columns: 340px 1fr; } .tool-in { position: sticky; top: 76px; } }
+.tool-out { min-width: 0; }
+.form { display: grid; gap: .9rem; }
+.form-heading { margin: .6rem 0 0; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
+.field label { display: block; font-weight: 600; font-size: .92rem; margin-bottom: .25rem; }
+.input-wrap { display: flex; align-items: center; gap: .5rem; }
+.field input[type=number], .field select, .answer-row input, .search input {
+  width: 100%; font: inherit; padding: .55rem .7rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); min-height: 44px;
+}
+.field input[type=range] { width: 100%; margin-top: .4rem; accent-color: var(--primary); }
+.unit { color: var(--muted); font-size: .875rem; white-space: nowrap; min-width: 3.2em; }
+.help { color: var(--muted); font-size: .8rem; margin-top: .2rem; }
+.big-result { background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 65%, #7b57d1)); color: var(--primary-ink); border-radius: var(--radius); padding: 1.1rem 1.3rem; box-shadow: var(--shadow); }
+.br-label { font-size: .85rem; opacity: .9; font-weight: 600; }
+.br-value { font-size: clamp(2rem, 6vw, 3rem); font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.br-unit { font-size: 1.1rem; font-weight: 600; opacity: .9; }
+.chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; margin: .8rem 0; }
+.chip { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .6rem .8rem; }
+.chip-v { font-weight: 800; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.chip-l { font-size: .78rem; color: var(--muted); }
+.notice { border-radius: 10px; padding: .7rem 1rem; margin: .8rem 0; font-size: .95rem; }
+.notice.info { background: var(--primary-soft); }
+.notice.warn { background: var(--warn-soft); color: var(--text); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); }
+.sub { margin: 1.2rem 0 .4rem; }
+table.factors { width: 100%; border-collapse: collapse; font-size: .92rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+table.factors th { text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface-2); padding: .45rem .7rem; }
+table.factors td { padding: .45rem .7rem; border-top: 1px solid var(--border); }
+td.sym { font-family: var(--mono); font-weight: 800; color: var(--primary); }
+td.num { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; white-space: nowrap; }
+@media (max-width: 560px) { table.factors td:nth-child(4), table.factors th:nth-child(4) { display: none; } }
+
+/* Step by step */
+.work { margin-top: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .4rem 1rem 1rem; }
+.work > summary { cursor: pointer; font-weight: 700; padding: .7rem 0; color: var(--primary); }
+.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: .9rem; counter-reset: s; }
+.steps > li { border-left: 3px solid var(--primary-soft); padding-left: .9rem; }
+.step-title { font-weight: 700; }
+.step-formula { font-family: var(--mono); font-size: .88rem; color: var(--muted); margin-top: .15rem; overflow-wrap: anywhere; }
+.step-work { font-family: var(--mono); font-size: .9rem; background: var(--surface-2); padding: .4rem .6rem; border-radius: 8px; margin-top: .3rem; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.step-result { font-weight: 800; color: var(--good); margin-top: .25rem; font-variant-numeric: tabular-nums; }
+.step-why { margin: .25rem 0 0; font-size: .9rem; color: var(--muted); font-style: italic; }
+.worked { border-left: 4px solid var(--good); }
+.worked-tag { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--good); }
+.worked h3 { margin-top: .2rem; }
+
+/* Charts and diagrams */
+.chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .5rem; margin: .8rem 0; touch-action: pan-y; }
+.chart, .diagram { width: 100%; height: auto; display: block; }
+.chart .grid { stroke: var(--grid); stroke-width: 1; }
+.chart .axis { stroke: var(--muted); stroke-width: 1.2; }
+.chart .tick { fill: var(--muted); font-size: 11px; }
+.chart .axis-label { fill: var(--muted); font-size: 12px; font-weight: 600; }
+.chart .line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.chart .line.s0 { stroke: var(--s0); } .chart .line.s1 { stroke: var(--s1); } .chart .line.s2 { stroke: var(--s2); }
+.chart .line.dashed { stroke-dasharray: 6 5; stroke-width: 2.2; }
+.chart .vline { stroke: var(--muted); stroke-dasharray: 3 4; }
+.chart .vline-label, .chart .legend { fill: var(--muted); font-size: 11px; }
+.chart .drop { stroke: var(--accent); stroke-dasharray: 4 4; stroke-width: 1.5; }
+.chart .marker { fill: var(--accent); stroke: var(--surface); stroke-width: 2.5; }
+.chart .marker-label { fill: var(--text); font-size: 13px; font-weight: 800; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+.chart .cross-line { stroke: var(--muted); stroke-width: 1; }
+.chart .cross-dot { fill: var(--surface); stroke: var(--text); stroke-width: 2; }
+.chart .cross-text { fill: var(--text); font-size: 12px; font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+.diagram .beam { fill: color-mix(in srgb, var(--accent) 22%, transparent); stroke: var(--accent); stroke-width: 1.5; }
+.diagram .source { fill: var(--accent); }
+.diagram .plane { stroke-width: 6; stroke-linecap: round; }
+.diagram .plane.p1 { stroke: var(--s0); } .diagram .plane.p2 { stroke: var(--s2); }
+.diagram .dim { stroke: var(--muted); stroke-width: 1.2; marker-end: none; }
+.diagram .dg-text { fill: var(--text); font-size: 13px; font-weight: 600; }
+.diagram .dg-note { fill: var(--muted); font-size: 12px; font-weight: 700; }
+.bars { display: grid; gap: .5rem; margin: .8rem 0; }
+.bar-row { display: grid; grid-template-columns: 70px 1fr 60px; gap: .6rem; align-items: center; font-size: .9rem; }
+.bar-label { font-weight: 700; }
+.bar-track { background: var(--surface-2); border-radius: 999px; height: 12px; overflow: hidden; }
+.bar-fill { background: var(--primary); height: 100%; border-radius: 999px; transition: width .2s; }
+.bar-val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+/* Quiz */
+.quiz { margin-top: 1.5rem; }
+.quiz h3 { margin-top: 0; }
+.q { margin: 1.2rem 0; }
+.q-text { margin-bottom: .5rem; }
+.opts { display: grid; gap: .5rem; }
+.opt { text-align: left; font: inherit; padding: .7rem 1rem; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; min-height: 44px; }
+.opt:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-soft); }
+.opt:disabled { cursor: default; }
+.opt.right { border-color: var(--good); background: var(--good-soft); font-weight: 600; }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.quiz-fb { margin-top: .5rem; border-radius: 8px; padding: 0; }
+.quiz-fb.ok, .quiz-fb.no { padding: .55rem .8rem; }
+.quiz-fb.ok { background: var(--good-soft); } .quiz-fb.no { background: var(--bad-soft); }
+
+/* Practice */
+.practice-head { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: flex-start; }
+.scoreboard { display: flex; gap: .6rem; flex-wrap: wrap; }
+.score-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .4rem .8rem; text-align: center; min-width: 76px; }
+.score-item b { display: block; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.score-item span { font-size: .72rem; color: var(--muted); }
+.controls { display: grid; gap: 1rem; margin: 1rem 0; }
+.ctl-label { font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .3rem; }
+.pills { display: flex; flex-wrap: wrap; gap: .4rem; }
+.pill { font: inherit; font-size: .9rem; font-weight: 600; padding: .4rem .85rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; min-height: 40px; }
+.pill small { color: var(--muted); font-weight: 500; }
+.pill.active { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+.pill.active small { color: inherit; opacity: .85; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); flex-wrap: wrap; }
+.seg-btn { font: inherit; font-weight: 600; border: 0; background: transparent; color: var(--text); padding: .55rem 1rem; cursor: pointer; min-height: 44px; }
+.seg-btn.active { background: var(--primary); color: var(--primary-ink); }
+.problem { margin-top: 1rem; }
+.problem-meta { display: flex; gap: .5rem; margin-bottom: .5rem; }
+.tag { font-size: .75rem; font-weight: 700; padding: .2rem .7rem; border-radius: 999px; background: var(--primary-soft); color: var(--primary); }
+.tag.soft { background: var(--surface-2); color: var(--muted); }
+.question { font-size: 1.15rem; line-height: 1.55; margin: .6rem 0 1rem; }
+.answer-row { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.answer-row input { max-width: 220px; font-size: 1.1rem; font-weight: 700; }
+.unit-tag { color: var(--muted); font-weight: 600; }
+.btn-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .8rem; }
+.feedback { margin-top: .9rem; border-radius: 10px; }
+.feedback.ok, .feedback.no, .feedback.hint { padding: .7rem 1rem; }
+.feedback.ok { background: var(--good-soft); } .feedback.no { background: var(--bad-soft); } .feedback.hint { background: var(--primary-soft); }
+.solution-box { margin-top: .9rem; }
+.solution-box:empty { display: none; }
+
+/* Reference */
+.formula-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.fname { font-weight: 800; margin-bottom: .2rem; }
+.fcard p { margin: .3rem 0 0; }
+.search { margin: .6rem 0 1rem; max-width: 420px; }
+.glossary { display: grid; gap: .5rem; }
+.glossary > div { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .6rem .9rem; }
+.glossary dt { font-weight: 700; color: var(--primary); }
+.glossary dd { margin: 0; }
+@media (max-width: 560px) { .glossary > div { grid-template-columns: 1fr; gap: .1rem; } }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+@media print { .topbar, .footer, .btn, .icon-btn { display: none; } body { background: #fff; } }
+
+</style>
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="brand" href="#/" aria-label="DoseCalc EDU home">
+        <svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true"><rect width="64" height="64" rx="14" fill="var(--primary)"/><path d="M32 14 L32 50 M14 32 L50 32 M19 19 L45 45 M45 19 L19 45" stroke="#fff" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="32" r="7" fill="#ffb454"/></svg>
+        <span>DoseCalc <b>EDU</b></span>
+      </a>
+      <nav class="nav" aria-label="Main">
+        <a id="nav-learn" href="#/learn">Learn</a>
+        <a id="nav-tools" href="#/tools">Calculators</a>
+        <a id="nav-practice" href="#/practice">Practice</a>
+        <a id="nav-reference" href="#/reference">Formulas</a>
+      </nav>
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle light or dark theme" title="Toggle light / dark">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="view" tabindex="-1" aria-live="off"><noscript><p class="wrap">DoseCalc EDU needs JavaScript to run. Please enable it in your browser.</p></noscript></main>
+
+  <footer class="footer">
+    <p><b>Educational use only.</b> Generic teaching data. Never use for real patient treatment planning.</p>
+  </footer>
+
+  <script>
+/*
+ * DoseCalc EDU - calculation engine
+ * ---------------------------------
+ * Pure functions with no DOM access, so the same code runs in the browser
+ * (window.DoseCalc) and in Node (unit tests).
+ *
+ * IMPORTANT: the beam data below is GENERIC, ROUNDED teaching data that
+ * resembles a 6 MV photon beam. It is NOT measured data for any real machine
+ * and must never be used to treat patients.
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.DoseCalc = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  // ---------------------------------------------------------------------------
+  // Teaching beam data (generic 6 MV-like photons)
+  // ---------------------------------------------------------------------------
+  const DMAX = 1.5; // cm, depth of maximum dose
+  const LIMITS = { depthMax: 30, fieldMin: 3, fieldMax: 40, ssdMin: 50, ssdMax: 200 };
+
+  // Percent depth dose, 10x10 cm field, SSD = 100 cm.  [depth cm, PDD %]
+  const PDD_TABLE = [
+    [0, 35], [0.5, 79], [1, 93], [1.5, 100], [2, 98.4], [3, 94.6], [4, 90.6],
+    [5, 86.5], [6, 82.6], [8, 75.0], [10, 67.0], [12, 60.0], [15, 50.8],
+    [20, 38.4], [25, 29.1], [30, 22.0],
+  ];
+  // How much a field size different from 10x10 changes dose at depth.
+  // PDD(d, A) = PDD(d, 10x10) * (1 + slope(A) * (d - dmax) / 10)
+  const FIELD_SLOPE = [
+    [3, -0.048], [4, -0.04], [5, -0.032], [6, -0.025], [8, -0.012], [10, 0],
+    [12, 0.01], [15, 0.024], [20, 0.042], [25, 0.054], [30, 0.063], [40, 0.075],
+  ];
+  // Collimator scatter factor Sc and phantom scatter factor Sp vs equivalent square (cm)
+  const SC_TABLE = [
+    [3, 0.958], [4, 0.968], [5, 0.975], [6, 0.981], [8, 0.991], [10, 1.0],
+    [12, 1.007], [15, 1.016], [20, 1.03], [25, 1.039], [30, 1.045], [40, 1.052],
+  ];
+  const SP_TABLE = [
+    [3, 0.94], [4, 0.955], [5, 0.967], [6, 0.976], [8, 0.989], [10, 1.0],
+    [12, 1.008], [15, 1.017], [20, 1.025], [25, 1.031], [30, 1.035], [40, 1.04],
+  ];
+  const WEDGES = {
+    none: { label: 'No wedge', factor: 1.0 },
+    15: { label: '15° wedge', factor: 0.93 },
+    30: { label: '30° wedge', factor: 0.8 },
+    45: { label: '45° wedge', factor: 0.68 },
+    60: { label: '60° wedge', factor: 0.55 },
+  };
+  const TRAYS = {
+    none: { label: 'No tray', factor: 1.0 },
+    tray: { label: 'Blocking tray', factor: 0.97 },
+  };
+  const DEFAULT_MACHINE = {
+    K: 1.0, // cGy per MU under reference conditions
+    calibration: 'SAD', // 'SAD': dmax point is 100 cm from source. 'SSD': skin is 100 cm from source.
+    rate: 600, // MU per minute
+  };
+
+  // Radioactive sources: half-life in days
+  const YEAR = 365.25;
+  const ISOTOPES = {
+    'Co-60': { name: 'Cobalt-60', halfLifeDays: 5.2714 * YEAR, use: 'External-beam teletherapy units' },
+    'Cs-137': { name: 'Caesium-137', halfLifeDays: 30.17 * YEAR, use: 'Older brachytherapy sources' },
+    'Ir-192': { name: 'Iridium-192', halfLifeDays: 73.83, use: 'HDR brachytherapy' },
+    'I-125': { name: 'Iodine-125', halfLifeDays: 59.4, use: 'Permanent seed implants (e.g. prostate)' },
+    'Pd-103': { name: 'Palladium-103', halfLifeDays: 16.99, use: 'Permanent seed implants' },
+    'Au-198': { name: 'Gold-198', halfLifeDays: 2.695, use: 'Historic implants' },
+    'Ra-226': { name: 'Radium-226', halfLifeDays: 1600 * YEAR, use: 'Historic brachytherapy' },
+  };
+  const TIME_UNITS_DAYS = { days: 1, weeks: 7, months: YEAR / 12, years: YEAR };
+  const CO60_HALF_LIFE_YEARS = 5.2714;
+
+  // ---------------------------------------------------------------------------
+  // Small helpers
+  // ---------------------------------------------------------------------------
+  function interp(table, x, log) {
+    const first = table[0];
+    const last = table[table.length - 1];
+    if (x <= first[0]) return first[1];
+    if (x >= last[0]) return last[1];
+    let i = 0;
+    while (table[i + 1][0] < x) i++;
+    const [x0, y0] = table[i];
+    const [x1, y1] = table[i + 1];
+    const t = (x - x0) / (x1 - x0);
+    if (log) return Math.exp(Math.log(y0) + t * (Math.log(y1) - Math.log(y0)));
+    return y0 + t * (y1 - y0);
+  }
+
+  /** Format a number: at most dp decimals, no trailing zeros. */
+  function fmt(x, dp) {
+    if (dp === undefined) dp = 2;
+    if (typeof x !== 'number' || !isFinite(x)) return '—';
+    return String(Number(x.toFixed(dp)));
+  }
+  /** Format a number with exactly dp decimals. */
+  function fix(x, dp) {
+    if (typeof x !== 'number' || !isFinite(x)) return '—';
+    return x.toFixed(dp);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Core physics
+  // ---------------------------------------------------------------------------
+  function equivalentSquare(width, length) {
+    return (4 * width * length) / (2 * (width + length)); // 4A/P
+  }
+
+  function sc(es) { return interp(SC_TABLE, es); }
+  function sp(es) { return interp(SP_TABLE, es); }
+
+  function inverseSquareFactor(d1, d2) { return Math.pow(d1 / d2, 2); }
+
+  function mayneordF(f1, f2, depth, dmax) {
+    if (dmax === undefined) dmax = DMAX;
+    if (depth <= dmax) return 1;
+    return Math.pow((f2 + dmax) / (f2 + depth), 2) * Math.pow((f1 + depth) / (f1 + dmax), 2);
+  }
+
+  /** PDD at SSD 100 cm for the 10x10 reference field. */
+  function pdd10(depth) {
+    if (depth <= DMAX) return interp(PDD_TABLE, depth, false);
+    return interp(PDD_TABLE, depth, true);
+  }
+
+  function fieldSizeFactor(es, depth) {
+    if (depth <= DMAX) return 1;
+    return 1 + (interp(FIELD_SLOPE, es) * (depth - DMAX)) / 10;
+  }
+
+  /** PDD (%) with the three adjustments shown separately so lessons can explain each one. */
+  function pddBreakdown(depth, es, ssd) {
+    if (ssd === undefined) ssd = 100;
+    const base = pdd10(depth);
+    const fs = fieldSizeFactor(es, depth);
+    const f = mayneordF(100, ssd, depth, DMAX);
+    return { base, fieldFactor: fs, mayneord: f, pdd: Math.min(100, base * fs * f) };
+  }
+  function pdd(depth, es, ssd) { return pddBreakdown(depth, es, ssd).pdd; }
+
+  /**
+   * Tissue-maximum ratio for a field of equivalent square `es` measured AT THE DEPTH of the point.
+   * Derived from PDD so the SSD and SAD techniques agree (Khan, Physics of Radiation Therapy):
+   *   TMR(d, rd) = PDD(d, skin field)/100 x ((100 + d) / (100 + dmax))^2 x Sp(rdmax) / Sp(rd)
+   * where, on an SSD = 100 cm basis, skin field = rd x 100/(100 + d) and rdmax = skin field x (100 + dmax)/100.
+   */
+  function tmr(depth, es) {
+    const skinField = (es * 100) / (100 + depth);
+    const fieldAtDmax = (skinField * (100 + DMAX)) / 100;
+    const geometry = Math.pow((100 + depth) / (100 + DMAX), 2);
+    return (pdd(depth, skinField, 100) / 100) * geometry * (sp(fieldAtDmax) / sp(es));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Monitor units
+  // ---------------------------------------------------------------------------
+  function machineOf(input) { return Object.assign({}, DEFAULT_MACHINE, (input && input.machine) || {}); }
+  function refDistance(m) { return m.calibration === 'SSD' ? 100 + DMAX : 100; }
+
+  function validate(i, needSSD) {
+    const num = (x) => typeof x === 'number' && isFinite(x);
+    if (!num(i.dose) || i.dose <= 0) return 'Enter a prescribed dose greater than 0 cGy.';
+    if (!num(i.depth) || i.depth < DMAX || i.depth > LIMITS.depthMax)
+      return `Depth must be between ${DMAX} cm (dmax) and ${LIMITS.depthMax} cm for this teaching model.`;
+    if (!num(i.width) || !num(i.length) || i.width < LIMITS.fieldMin || i.length < LIMITS.fieldMin ||
+      i.width > LIMITS.fieldMax || i.length > LIMITS.fieldMax)
+      return `Field dimensions must be between ${LIMITS.fieldMin} and ${LIMITS.fieldMax} cm.`;
+    if (needSSD && (!num(i.ssd) || i.ssd < LIMITS.ssdMin || i.ssd > LIMITS.ssdMax))
+      return `SSD must be between ${LIMITS.ssdMin} and ${LIMITS.ssdMax} cm.`;
+    return null;
+  }
+
+  function modifiers(i) {
+    const wedge = WEDGES[i.wedge || 'none'] || WEDGES.none;
+    const tray = TRAYS[i.tray || 'none'] || TRAYS.none;
+    return { wedge, tray };
+  }
+
+  function summaryPair(mu, perMU, doseDmax, dose, m) {
+    return {
+      mu, muRounded: Math.round(mu), perMU,
+      doseAtDmax: doseDmax,
+      hotspotPct: (doseDmax / dose) * 100,
+      beamOnMin: mu / m.rate,
+    };
+  }
+
+  /** Monitor units for a fixed-SSD (SSD technique) single field. */
+  function muSSD(input) {
+    const err = validate(input, true);
+    if (err) return { ok: false, error: err };
+    const m = machineOf(input);
+    const { dose, depth, width, length, ssd } = input;
+    const { wedge, tray } = modifiers(input);
+
+    const area = width * length;
+    const perim = 2 * (width + length);
+    const es = equivalentSquare(width, length);
+    const coll = (es * 100) / ssd;
+    const scV = sc(coll);
+    const dist = ssd + DMAX;
+    const esDmax = (es * dist) / ssd; // the beam keeps diverging below the skin
+    const spV = sp(esDmax);
+    const pb = pddBreakdown(depth, es, ssd);
+    const ref = refDistance(m);
+    const isf = Math.pow(ref / dist, 2);
+    const wf = wedge.factor;
+    const tf = tray.factor;
+    const noPDD = m.K * scV * spV * isf * wf * tf; // dose per MU at dmax
+    const perMU = noPDD * (pb.pdd / 100);
+    const mu = dose / perMU;
+    const doseDmax = mu * noPDD;
+
+    const steps = [
+      {
+        title: '1. Find the equivalent square of the field',
+        formula: 'Equivalent square = 4 × Area ÷ Perimeter',
+        work: `4 × (${fmt(width)} × ${fmt(length)}) ÷ (2 × (${fmt(width)} + ${fmt(length)})) = ${fmt(4 * area)} ÷ ${fmt(perim)}`,
+        result: `${fmt(es, 2)} cm`,
+        why: 'Every rectangle is replaced by the square field that scatters radiation the same way. All tables are looked up with this number.',
+      },
+      {
+        title: '2. Collimator scatter factor (Sc)',
+        formula: 'Sc = value from table at the collimator field size (the field projected to 100 cm)',
+        work: `Collimator field = ${fmt(es, 2)} × 100 ÷ ${fmt(ssd)} = ${fmt(coll, 2)} cm  →  Sc(${fmt(coll, 1)} cm)`,
+        result: `Sc = ${fix(scV, 3)}`,
+        why: 'A bigger opening lets more scattered radiation escape from the machine head, so more dose per MU.',
+      },
+      {
+        title: '3. Phantom (patient) scatter factor (Sp)',
+        formula: 'Sp = value from table at the field size at the depth of dmax',
+        work: `Field at dmax = ${fmt(es, 2)} × ${fmt(dist, 1)} ÷ ${fmt(ssd)} = ${fmt(esDmax, 2)} cm  →  Sp(${fmt(esDmax, 1)} cm)`,
+        result: `Sp = ${fix(spV, 3)}`,
+        why: 'A bigger field puts more tissue in the beam, which scatters extra dose back to the point of interest.',
+      },
+      {
+        title: '4. Percent depth dose (PDD)',
+        formula: 'PDD = PDD(10×10, SSD 100) × field-size adjustment × Mayneord F',
+        work: `${fmt(pb.base, 1)} × ${fix(pb.fieldFactor, 3)} × ${fix(pb.mayneord, 3)} = ${fmt(pb.pdd, 2)} %`,
+        result: `PDD = ${fmt(pb.pdd, 2)} %`,
+        why: `At ${fmt(depth)} cm deep, only this percentage of the maximum dose reaches the point. Mayneord F = ${fix(pb.mayneord, 3)} corrects for SSD ≠ 100 cm.`,
+      },
+      {
+        title: '5. Inverse-square factor (ISF)',
+        formula: 'ISF = (calibration distance ÷ source-to-dmax distance)²',
+        work: `(${fmt(ref, 1)} ÷ (${fmt(ssd)} + ${fmt(DMAX)}))² = (${fmt(ref, 1)} ÷ ${fmt(dist, 1)})²`,
+        result: `ISF = ${fix(isf, 4)}`,
+        why: 'The machine is calibrated at one distance. If the patient\'s dmax point is farther away, the dose rate drops with the square of the distance.',
+      },
+      {
+        title: '6. Wedge and tray factors',
+        formula: 'WF = wedge factor, TF = tray factor',
+        work: `${wedge.label}: WF = ${fix(wf, 3)};  ${tray.label}: TF = ${fix(tf, 3)}`,
+        result: `WF × TF = ${fix(wf * tf, 3)}`,
+        why: 'Wedges and trays absorb some of the beam, so each MU delivers a little less dose.',
+      },
+      {
+        title: '7. Dose delivered per monitor unit at the prescription point',
+        formula: 'Dose per MU = K × Sc × Sp × PDD/100 × ISF × WF × TF',
+        work: `${fix(m.K, 3)} × ${fix(scV, 3)} × ${fix(spV, 3)} × ${fix(pb.pdd / 100, 4)} × ${fix(isf, 4)} × ${fix(wf, 3)} × ${fix(tf, 3)}`,
+        result: `${fix(perMU, 4)} cGy per MU`,
+        why: 'K is the machine calibration (cGy per MU in the reference setup). Everything else adjusts it to this patient.',
+      },
+      {
+        title: '8. Monitor units',
+        formula: 'MU = Prescribed dose ÷ Dose per MU',
+        work: `${fmt(dose)} ÷ ${fix(perMU, 4)} = ${fmt(mu, 2)}`,
+        result: `${fmt(mu, 1)} MU  →  deliver ${Math.round(mu)} MU`,
+        why: 'Round to the nearest whole MU, which is what the machine delivers.',
+      },
+    ];
+
+    const factors = [
+      { symbol: 'K', name: 'Calibration', value: fix(m.K, 3), note: 'cGy per MU in reference setup' },
+      { symbol: 'Sc', name: 'Collimator scatter', value: fix(scV, 3), note: `collimator field ${fmt(coll, 1)} cm` },
+      { symbol: 'Sp', name: 'Phantom scatter', value: fix(spV, 3), note: `field ${fmt(esDmax, 1)} cm at dmax` },
+      { symbol: 'PDD', name: 'Percent depth dose', value: fmt(pb.pdd, 2) + ' %', note: `depth ${fmt(depth)} cm` },
+      { symbol: 'ISF', name: 'Inverse square', value: fix(isf, 4), note: `${fmt(dist, 1)} cm to dmax` },
+      { symbol: 'WF', name: 'Wedge', value: fix(wf, 3), note: wedge.label },
+      { symbol: 'TF', name: 'Tray', value: fix(tf, 3), note: tray.label },
+    ];
+    return Object.assign({ ok: true, technique: 'SSD', es, factors, steps }, summaryPair(mu, perMU, doseDmax, dose, m), {
+      parts: { scV, spV, pdd: pb.pdd, isf, wf, tf },
+    });
+  }
+
+  /** Monitor units for an isocentric (SAD) single field, dose prescribed at the isocentre. */
+  function muSAD(input) {
+    const err = validate(input, false);
+    if (err) return { ok: false, error: err };
+    const m = machineOf(input);
+    const { dose, depth, width, length } = input;
+    const { wedge, tray } = modifiers(input);
+
+    const area = width * length;
+    const perim = 2 * (width + length);
+    const es = equivalentSquare(width, length);
+    const scV = sc(es);
+    const spV = sp(es);
+    const tmrV = tmr(depth, es);
+    const calFactor = Math.pow(refDistance(m) / 100, 2);
+    const wf = wedge.factor;
+    const tf = tray.factor;
+    const noTMR = m.K * calFactor * scV * spV * wf * tf;
+    const perMU = noTMR * tmrV;
+    const mu = dose / perMU;
+    const doseDmax = mu * noTMR; // dose at dmax depth on the same ray at the same distance
+
+    const steps = [
+      {
+        title: '1. Find the equivalent square of the field at the isocentre',
+        formula: 'Equivalent square = 4 × Area ÷ Perimeter',
+        work: `4 × (${fmt(width)} × ${fmt(length)}) ÷ (2 × (${fmt(width)} + ${fmt(length)})) = ${fmt(4 * area)} ÷ ${fmt(perim)}`,
+        result: `${fmt(es, 2)} cm`,
+        why: 'In the SAD technique the field size is defined at the isocentre (100 cm), which is where the dose point is.',
+      },
+      {
+        title: '2. Collimator and phantom scatter factors',
+        formula: 'Sc and Sp = table values at the equivalent square',
+        work: `Sc(${fmt(es, 2)} cm) = ${fix(scV, 3)},  Sp(${fmt(es, 2)} cm) = ${fix(spV, 3)}`,
+        result: `Sc × Sp = ${fix(scV * spV, 4)}`,
+        why: 'Same idea as the SSD technique: bigger fields give more scatter, so more dose per MU.',
+      },
+      {
+        title: '3. Tissue-maximum ratio (TMR)',
+        formula: 'TMR = dose at depth ÷ dose at dmax, with the same distance from the source',
+        work: `TMR(depth ${fmt(depth)} cm, ${fmt(es, 2)} cm field)`,
+        result: `TMR = ${fix(tmrV, 4)}`,
+        why: 'TMR only measures how the beam is attenuated by tissue. Because the distance is fixed, no inverse-square correction is needed.',
+      },
+      {
+        title: '4. Wedge and tray factors',
+        formula: 'WF = wedge factor, TF = tray factor',
+        work: `${wedge.label}: WF = ${fix(wf, 3)};  ${tray.label}: TF = ${fix(tf, 3)}`,
+        result: `WF × TF = ${fix(wf * tf, 3)}`,
+        why: 'Accessories absorb some of the beam, so each MU delivers a little less dose.',
+      },
+    ];
+    if (m.calibration === 'SSD') {
+      steps.push({
+        title: '5. Calibration-distance factor',
+        formula: 'Cal. factor = ((100 + dmax) ÷ 100)²',
+        work: `((100 + ${fmt(DMAX)}) ÷ 100)² = ${fix(calFactor, 4)}`,
+        result: `${fix(calFactor, 4)}`,
+        why: 'With an SSD-type calibration the reference point sits 1.5 cm farther from the source than the isocentre, so the dose rate at the isocentre is slightly higher.',
+      });
+    }
+    const n = steps.length;
+    steps.push({
+      title: `${n + 1}. Dose delivered per monitor unit at the isocentre`,
+      formula: 'Dose per MU = K × Sc × Sp × TMR × WF × TF',
+      work: `${fix(m.K, 3)} × ${fix(scV, 3)} × ${fix(spV, 3)} × ${fix(tmrV, 4)} × ${fix(wf, 3)} × ${fix(tf, 3)}` +
+        (calFactor !== 1 ? ` × ${fix(calFactor, 4)}` : ''),
+      result: `${fix(perMU, 4)} cGy per MU`,
+      why: 'Everything that changes the dose is multiplied together.',
+    });
+    steps.push({
+      title: `${n + 2}. Monitor units`,
+      formula: 'MU = Prescribed dose ÷ Dose per MU',
+      work: `${fmt(dose)} ÷ ${fix(perMU, 4)} = ${fmt(mu, 2)}`,
+      result: `${fmt(mu, 1)} MU  →  deliver ${Math.round(mu)} MU`,
+      why: 'Round to the nearest whole MU.',
+    });
+
+    const factors = [
+      { symbol: 'K', name: 'Calibration', value: fix(m.K, 3), note: 'cGy per MU in reference setup' },
+      { symbol: 'Sc', name: 'Collimator scatter', value: fix(scV, 3), note: `field ${fmt(es, 1)} cm` },
+      { symbol: 'Sp', name: 'Phantom scatter', value: fix(spV, 3), note: `field ${fmt(es, 1)} cm` },
+      { symbol: 'TMR', name: 'Tissue-max ratio', value: fix(tmrV, 4), note: `depth ${fmt(depth)} cm` },
+      { symbol: 'WF', name: 'Wedge', value: fix(wf, 3), note: wedge.label },
+      { symbol: 'TF', name: 'Tray', value: fix(tf, 3), note: tray.label },
+    ];
+
+    // Cross-check with the equivalent fixed-SSD treatment (SSD = 100 - depth).
+    let cross = null;
+    const ssdEq = 100 - depth;
+    if (ssdEq >= LIMITS.ssdMin) {
+      const k = ssdEq / 100;
+      const alt = muSSD({ dose, depth, width: width * k, length: length * k, ssd: ssdEq,
+        wedge: input.wedge, tray: input.tray, machine: input.machine });
+      if (alt.ok) cross = { ssd: ssdEq, mu: alt.mu, diffPct: ((alt.mu - mu) / mu) * 100 };
+    }
+
+    return Object.assign({ ok: true, technique: 'SAD', es, factors, steps, cross }, summaryPair(mu, perMU, doseDmax, dose, m), {
+      parts: { scV, spV, tmr: tmrV, wf, tf },
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Radiobiology (linear-quadratic model)
+  // ---------------------------------------------------------------------------
+  function bed(n, d, ab) { return n * d * (1 + d / ab); }
+  function eqd2(n, d, ab) { return bed(n, d, ab) / (1 + 2 / ab); }
+  /** Dose per fraction in a new schedule of n2 fractions that has the same BED. */
+  function equivalentDosePerFraction(bedValue, n2, ab) {
+    return (-ab + Math.sqrt(ab * ab + (4 * ab * bedValue) / n2)) / 2;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Radioactive decay
+  // ---------------------------------------------------------------------------
+  function remainingFraction(t, halfLife) { return Math.pow(0.5, t / halfLife); }
+  function decayConstant(halfLife) { return Math.LN2 / halfLife; }
+  function timeToFraction(fraction, halfLife) { return (-Math.log2(fraction)) * halfLife; }
+
+  function co60Time(rateAtReference, elapsedYears, dose) {
+    const frac = remainingFraction(elapsedYears, CO60_HALF_LIFE_YEARS);
+    const rate = rateAtReference * frac;
+    return { fraction: frac, rate, minutes: dose / rate };
+  }
+
+  return {
+    DMAX, LIMITS, PDD_TABLE, SC_TABLE, SP_TABLE, FIELD_SLOPE, WEDGES, TRAYS, DEFAULT_MACHINE,
+    ISOTOPES, TIME_UNITS_DAYS, CO60_HALF_LIFE_YEARS,
+    interp, fmt, fix,
+    equivalentSquare, sc, sp, inverseSquareFactor, mayneordF,
+    pdd10, fieldSizeFactor, pddBreakdown, pdd, tmr,
+    muSSD, muSAD,
+    bed, eqd2, equivalentDosePerFraction,
+    remainingFraction, decayConstant, timeToFraction, co60Time,
+  };
+});
+
+</script>
+  <script>
+/* DoseCalc EDU - UI helpers: DOM builder, forms, step-by-step renderer, SVG charts, progress storage */
+(function () {
+  'use strict';
+  const DE = (window.DoseEdu = window.DoseEdu || {});
+  const C = window.DoseCalc;
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  // ---------------------------------------------------------------------------
+  // DOM builders
+  // ---------------------------------------------------------------------------
+  function applyAttrs(el, attrs) {
+    if (!attrs) return;
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'class') el.setAttribute('class', v);
+      else if (k === 'html') el.innerHTML = v;
+      else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+  }
+  function append(el, kids) {
+    for (const c of kids.flat(Infinity)) {
+      if (c === null || c === undefined || c === false) continue;
+      el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+    }
+  }
+  function h(tag, attrs, ...kids) {
+    const el = document.createElement(tag);
+    applyAttrs(el, attrs);
+    append(el, kids);
+    return el;
+  }
+  function s(tag, attrs, ...kids) {
+    const el = document.createElementNS(SVG_NS, tag);
+    applyAttrs(el, attrs);
+    append(el, kids);
+    return el;
+  }
+
+  /** Stacked fraction used in formulas, e.g. fr('Dose', 'K × Sc') */
+  function fr(num, den) {
+    return `<span class="frac"><span>${num}</span><span>${den}</span></span>`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Progress storage (localStorage with in-memory fallback)
+  // ---------------------------------------------------------------------------
+  const KEY = 'dosecaledu:v1';
+  let memory = {};
+  const store = {
+    load() {
+      try {
+        const raw = window.localStorage.getItem(KEY);
+        if (raw) memory = JSON.parse(raw) || {};
+      } catch (e) { /* storage unavailable: keep memory only */ }
+      return memory;
+    },
+    save() {
+      try { window.localStorage.setItem(KEY, JSON.stringify(memory)); } catch (e) { /* ignore */ }
+    },
+    get(key, fallback) { return memory[key] === undefined ? fallback : memory[key]; },
+    set(key, value) { memory[key] = value; this.save(); },
+    reset() { memory = {}; this.save(); },
+  };
+  store.load();
+
+  // ---------------------------------------------------------------------------
+  // Forms
+  // ---------------------------------------------------------------------------
+  let uid = 0;
+  function buildForm(fields, onChange) {
+    const values = {};
+    const rows = [];
+    const form = h('form', { class: 'form', onsubmit: (e) => e.preventDefault(), novalidate: true });
+
+    function visibility() {
+      for (const r of rows) r.el.hidden = r.show ? !r.show(values) : false;
+    }
+    function changed() { visibility(); onChange(); }
+
+    for (const f of fields) {
+      if (f.type === 'heading') {
+        const el = h('h4', { class: 'form-heading' }, f.label);
+        rows.push({ el, show: f.show });
+        form.append(el);
+        continue;
+      }
+      const id = 'fld' + ++uid;
+      values[f.key] = f.value;
+      let control;
+      let body;
+      if (f.type === 'select') {
+        control = h('select', { id }, f.options.map((o) => h('option', { value: o.value }, o.label)));
+        control.value = String(f.value);
+        control.addEventListener('change', () => {
+          values[f.key] = control.value;
+          changed();
+        });
+        values[f.key] = control.value;
+        body = [control];
+      } else {
+        control = h('input', {
+          id, type: 'number', value: f.value, min: f.min, max: f.max,
+          step: f.step || 'any', inputmode: 'decimal',
+        });
+        const range = f.slider
+          ? h('input', { type: 'range', min: f.min, max: f.max, step: f.step || 'any', value: f.value, 'aria-label': `${f.label} slider` })
+          : null;
+        control.addEventListener('input', () => {
+          const v = parseFloat(control.value);
+          values[f.key] = v;
+          if (range && isFinite(v)) range.value = v;
+          changed();
+        });
+        if (range) {
+          range.addEventListener('input', () => {
+            control.value = range.value;
+            values[f.key] = parseFloat(range.value);
+            changed();
+          });
+        }
+        body = [h('div', { class: 'input-wrap' }, control, f.unit ? h('span', { class: 'unit' }, f.unit) : null), range];
+      }
+      const el = h('div', { class: 'field' },
+        h('label', { for: id }, f.label),
+        body,
+        f.help ? h('div', { class: 'help' }, f.help) : null);
+      rows.push({ el, show: f.show });
+      form.append(el);
+    }
+    visibility();
+    return { form, values, update: visibility };
+  }
+
+  /**
+   * Standard "form on the left, live result on the right" tool.
+   * spec: { fields, compute(values) -> result | {error}, render(result, values) -> Node }
+   */
+  function createTool(root, spec) {
+    const out = h('div', { class: 'tool-out', 'aria-live': 'polite' });
+    const { form, values } = buildForm(spec.fields, refresh);
+    function refresh() {
+      let node;
+      try {
+        const res = spec.compute(values);
+        node = res && res.error ? notice('warn', res.error) : spec.render(res, values);
+      } catch (e) {
+        node = notice('warn', 'Something went wrong with these numbers. Please check each box.');
+        console.error(e);
+      }
+      out.replaceChildren(node);
+    }
+    root.append(h('div', { class: 'tool' }, h('div', { class: 'tool-in card' }, form), out));
+    refresh();
+    return { values, refresh };
+  }
+
+  function notice(kind, text) {
+    return h('div', { class: 'notice ' + kind, role: kind === 'warn' ? 'alert' : null }, text);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Result building blocks
+  // ---------------------------------------------------------------------------
+  function bigResult(label, value, unit) {
+    return h('div', { class: 'big-result' },
+      h('div', { class: 'br-label' }, label),
+      h('div', { class: 'br-value' }, value, unit ? h('span', { class: 'br-unit' }, ' ' + unit) : null));
+  }
+  function chips(items) {
+    return h('div', { class: 'chips' }, items.map((i) =>
+      h('div', { class: 'chip' }, h('div', { class: 'chip-v' }, i.value), h('div', { class: 'chip-l' }, i.label))));
+  }
+  function stepsList(steps, open) {
+    return h('details', { class: 'work', open: open === false ? null : true },
+      h('summary', null, 'Show your work, step by step'),
+      h('ol', { class: 'steps' }, steps.map((st) =>
+        h('li', null,
+          h('div', { class: 'step-title' }, st.title),
+          st.formula ? h('div', { class: 'step-formula' }, st.formula) : null,
+          st.work ? h('div', { class: 'step-work' }, st.work) : null,
+          st.result ? h('div', { class: 'step-result' }, st.result) : null,
+          st.why ? h('p', { class: 'step-why' }, st.why) : null))));
+  }
+  function factorTable(factors) {
+    return h('table', { class: 'factors' },
+      h('thead', null, h('tr', null, h('th', null, 'Symbol'), h('th', null, 'Factor'), h('th', null, 'Value'), h('th', null, 'Why'))),
+      h('tbody', null, factors.map((f) =>
+        h('tr', null, h('td', { class: 'sym' }, f.symbol), h('td', null, f.name), h('td', { class: 'num' }, f.value), h('td', { class: 'muted' }, f.note)))));
+  }
+
+  // ---------------------------------------------------------------------------
+  // SVG line chart with hover read-out
+  // ---------------------------------------------------------------------------
+  function niceTicks(min, max, count) {
+    const span = max - min;
+    const raw = span / count;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const norm = raw / mag;
+    const step = (norm >= 5 ? 5 : norm >= 2 ? 2 : 1) * mag;
+    const ticks = [];
+    for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) ticks.push(Number(v.toFixed(10)));
+    return ticks;
+  }
+
+  /**
+   * o: { width, height, xmin, xmax, ymin, ymax, xlabel, ylabel, label,
+   *      series:[{fn|points, cls, name, dashed}], markers:[{x,y,label}], vlines:[{x,label}],
+   *      readout(x, y) -> text, xfmt, yfmt }
+   */
+  function lineChart(o) {
+    const W = o.width || 640;
+    const H = o.height || 340;
+    const m = { l: 58, r: 20, t: 18, b: 48 };
+    const iw = W - m.l - m.r;
+    const ih = H - m.t - m.b;
+    const sx = (x) => m.l + ((x - o.xmin) / (o.xmax - o.xmin)) * iw;
+    const sy = (y) => m.t + ih - ((y - o.ymin) / (o.ymax - o.ymin)) * ih;
+    const xfmt = o.xfmt || ((v) => C.fmt(v, 2));
+    const yfmt = o.yfmt || ((v) => C.fmt(v, 2));
+
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': o.label || 'Chart' });
+    for (const y of niceTicks(o.ymin, o.ymax, 5)) {
+      svg.append(s('line', { class: 'grid', x1: m.l, x2: W - m.r, y1: sy(y), y2: sy(y) }));
+      svg.append(s('text', { class: 'tick', x: m.l - 8, y: sy(y) + 4, 'text-anchor': 'end' }, yfmt(y)));
+    }
+    for (const x of niceTicks(o.xmin, o.xmax, 7)) {
+      svg.append(s('line', { class: 'grid v', x1: sx(x), x2: sx(x), y1: m.t, y2: m.t + ih }));
+      svg.append(s('text', { class: 'tick', x: sx(x), y: m.t + ih + 18, 'text-anchor': 'middle' }, xfmt(x)));
+    }
+    svg.append(s('line', { class: 'axis', x1: m.l, x2: W - m.r, y1: m.t + ih, y2: m.t + ih }));
+    svg.append(s('line', { class: 'axis', x1: m.l, x2: m.l, y1: m.t, y2: m.t + ih }));
+    if (o.xlabel) svg.append(s('text', { class: 'axis-label', x: m.l + iw / 2, y: H - 8, 'text-anchor': 'middle' }, o.xlabel));
+    if (o.ylabel) svg.append(s('text', { class: 'axis-label', transform: `translate(14 ${m.t + ih / 2}) rotate(-90)`, 'text-anchor': 'middle' }, o.ylabel));
+
+    for (const v of o.vlines || []) {
+      svg.append(s('line', { class: 'vline', x1: sx(v.x), x2: sx(v.x), y1: m.t, y2: m.t + ih }));
+      svg.append(s('text', { class: 'vline-label', x: sx(v.x) + 5, y: m.t + 13 }, v.label));
+    }
+    const sample = (ser) => {
+      if (ser.points) return ser.points;
+      const pts = [];
+      const n = 160;
+      for (let i = 0; i <= n; i++) {
+        const x = o.xmin + ((o.xmax - o.xmin) * i) / n;
+        pts.push([x, ser.fn(x)]);
+      }
+      return pts;
+    };
+    (o.series || []).forEach((ser, i) => {
+      const pts = sample(ser).filter((p) => isFinite(p[1]));
+      const d = pts.map((p, j) => `${j ? 'L' : 'M'}${sx(p[0]).toFixed(1)} ${sy(Math.max(o.ymin, Math.min(o.ymax, p[1]))).toFixed(1)}`).join(' ');
+      svg.append(s('path', { class: `line ${ser.cls || 's' + i}${ser.dashed ? ' dashed' : ''}`, d }));
+    });
+    for (const mk of o.markers || []) {
+      svg.append(s('line', { class: 'drop', x1: sx(mk.x), x2: sx(mk.x), y1: sy(mk.y), y2: m.t + ih }));
+      svg.append(s('line', { class: 'drop', x1: m.l, x2: sx(mk.x), y1: sy(mk.y), y2: sy(mk.y) }));
+      svg.append(s('circle', { class: 'marker', cx: sx(mk.x), cy: sy(mk.y), r: 6 }));
+      if (mk.label) {
+        const right = sx(mk.x) < W * 0.62;
+        svg.append(s('text', { class: 'marker-label', x: sx(mk.x) + (right ? 12 : -12), y: sy(mk.y) - 10, 'text-anchor': right ? 'start' : 'end' }, mk.label));
+      }
+    }
+    (o.series || []).forEach((ser, i) => {
+      if (!ser.name) return;
+      const y = m.t + 14 + i * 16;
+      const lx = o.legendLeft ? m.l + 14 : W - m.r - 150;
+      svg.append(s('line', { class: `line ${ser.cls || 's' + i}${ser.dashed ? ' dashed' : ''}`, x1: lx, x2: lx + 22, y1: y - 4, y2: y - 4 }));
+      svg.append(s('text', { class: 'legend', x: lx + 28, y }, ser.name));
+    });
+
+    // hover / touch read-out on the first series
+    const first = (o.series || [])[0];
+    if (first && (first.fn || o.readout)) {
+      const cross = s('g', { class: 'cross', visibility: 'hidden' },
+        s('line', { class: 'cross-line', y1: m.t, y2: m.t + ih }),
+        s('circle', { class: 'cross-dot', r: 4.5 }),
+        s('text', { class: 'cross-text' }));
+      svg.append(cross);
+      const cl = cross.children[0];
+      const cd = cross.children[1];
+      const ct = cross.children[2];
+      const overlay = s('rect', { x: m.l, y: m.t, width: iw, height: ih, fill: 'transparent' });
+      const move = (ev) => {
+        const r = svg.getBoundingClientRect();
+        const px = ((ev.clientX - r.left) / r.width) * W;
+        const x = Math.max(o.xmin, Math.min(o.xmax, o.xmin + ((px - m.l) / iw) * (o.xmax - o.xmin)));
+        const y = first.fn ? first.fn(x) : NaN;
+        if (!isFinite(y)) return;
+        cl.setAttribute('x1', sx(x)); cl.setAttribute('x2', sx(x));
+        cd.setAttribute('cx', sx(x)); cd.setAttribute('cy', sy(y));
+        const right = sx(x) < W * 0.6;
+        ct.setAttribute('x', sx(x) + (right ? 10 : -10));
+        ct.setAttribute('y', Math.max(m.t + 12, sy(y) - 10));
+        ct.setAttribute('text-anchor', right ? 'start' : 'end');
+        ct.textContent = o.readout ? o.readout(x, y) : `${xfmt(x)} → ${yfmt(y)}`;
+        cross.setAttribute('visibility', 'visible');
+      };
+      overlay.addEventListener('pointermove', move);
+      overlay.addEventListener('pointerdown', move);
+      overlay.addEventListener('pointerleave', () => cross.setAttribute('visibility', 'hidden'));
+      svg.append(overlay);
+    }
+    return h('div', { class: 'chart-wrap' }, svg);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Quiz block (multiple choice with explanations)
+  // ---------------------------------------------------------------------------
+  function quizBlock(questions, quizKey, onDone) {
+    const saved = store.get('quiz', {});
+    const wrap = h('div', { class: 'quiz card' }, h('h3', null, 'Check your understanding'));
+    const answered = {};
+    function report() {
+      const n = Object.keys(answered).length;
+      if (n === questions.length) {
+        const right = Object.values(answered).filter(Boolean).length;
+        const all = store.get('quiz', {});
+        all[quizKey] = { right, total: questions.length };
+        store.set('quiz', all);
+        if (onDone) onDone(right, questions.length);
+      }
+    }
+    questions.forEach((q, qi) => {
+      const fb = h('div', { class: 'quiz-fb', 'aria-live': 'polite' });
+      const opts = h('div', { class: 'opts', role: 'group', 'aria-label': `Question ${qi + 1}` });
+      q.options.forEach((text, oi) => {
+        const b = h('button', { type: 'button', class: 'opt' }, text);
+        b.addEventListener('click', () => {
+          if (answered[qi] !== undefined) return;
+          const ok = oi === q.answer;
+          answered[qi] = ok;
+          [...opts.children].forEach((btn, bi) => {
+            btn.disabled = true;
+            if (bi === q.answer) btn.classList.add('right');
+            else if (bi === oi) btn.classList.add('wrong');
+          });
+          fb.className = 'quiz-fb ' + (ok ? 'ok' : 'no');
+          fb.replaceChildren(h('strong', null, ok ? 'Correct. ' : 'Not quite. '), h('span', { html: q.why }));
+          report();
+        });
+        opts.append(b);
+      });
+      wrap.append(h('div', { class: 'q' }, h('p', { class: 'q-text', html: `<b>${qi + 1}.</b> ${q.q}` }), opts, fb));
+    });
+    if (saved[quizKey]) wrap.append(h('p', { class: 'muted small' }, `Last score: ${saved[quizKey].right}/${saved[quizKey].total}`));
+    return wrap;
+  }
+
+  Object.assign(DE, { h, s, fr, store, buildForm, createTool, notice, bigResult, chips, stepsList, factorTable, lineChart, quizBlock });
+})();
+
+</script>
+  <script>
+/* DoseCalc EDU - interactive calculators and explainer widgets.
+ * Every widget is registered once and used both inside lessons and on the Calculators page. */
+(function () {
+  'use strict';
+  const DE = window.DoseEdu;
+  const C = window.DoseCalc;
+  const { h, s, createTool, notice, bigResult, chips, stepsList, factorTable, lineChart } = DE;
+  const { fmt, fix } = C;
+
+  const widgets = {};
+  const order = [];
+  function reg(id, title, summary, group, mount) {
+    widgets[id] = { id, title, summary, group, mount };
+    order.push(id);
+  }
+
+  const allNumbers = (v, keys) => keys.every((k) => typeof v[k] === 'number' && isFinite(v[k]));
+  const NEED_NUMBERS = { error: 'Please fill in every box with a number.' };
+  const mmss = (minutes) => {
+    const total = Math.round(minutes * 60);
+    return `${Math.floor(total / 60)} min ${String(total % 60).padStart(2, '0')} s`;
+  };
+
+  // ===========================================================================
+  // 1. Fractionation and units
+  // ===========================================================================
+  reg('fractionation', 'Fractionation & units', 'Total dose, dose per fraction and number of fractions. Gy and cGy.', 'Basics', (el) => {
+    createTool(el, {
+      fields: [
+        {
+          key: 'solve', type: 'select', label: 'What do you want to find?', value: 'total',
+          options: [
+            { value: 'total', label: 'Total dose' },
+            { value: 'perfx', label: 'Dose per fraction' },
+            { value: 'n', label: 'Number of fractions' },
+          ],
+        },
+        { key: 'd', label: 'Dose per fraction', value: 2, unit: 'Gy', min: 0.1, max: 30, step: 0.1, show: (v) => v.solve !== 'perfx' },
+        { key: 'n', label: 'Number of fractions', value: 30, unit: 'fractions', min: 1, max: 60, step: 1, show: (v) => v.solve !== 'n' },
+        { key: 'T', label: 'Total dose', value: 60, unit: 'Gy', min: 0.1, max: 120, step: 0.5, show: (v) => v.solve !== 'total' },
+      ],
+      compute(v) {
+        const need = v.solve === 'total' ? ['d', 'n'] : v.solve === 'perfx' ? ['T', 'n'] : ['T', 'd'];
+        if (!allNumbers(v, need) || need.some((k) => v[k] <= 0)) return NEED_NUMBERS;
+        if (v.solve === 'total') {
+          const T = v.d * v.n;
+          return { label: 'Total dose', gy: T, unit: 'Gy', steps: [
+            { title: 'Multiply dose per fraction by the number of fractions', formula: 'Total dose = Dose per fraction × Number of fractions', work: `${fmt(v.d)} Gy × ${fmt(v.n)}`, result: `${fmt(T, 2)} Gy` },
+            { title: 'Convert to centigray (1 Gy = 100 cGy)', formula: 'cGy = Gy × 100', work: `${fmt(T, 2)} × 100`, result: `${fmt(T * 100, 1)} cGy` },
+          ] };
+        }
+        if (v.solve === 'perfx') {
+          const d = v.T / v.n;
+          return { label: 'Dose per fraction', gy: d, unit: 'Gy', steps: [
+            { title: 'Divide the total dose by the number of fractions', formula: 'Dose per fraction = Total dose ÷ Number of fractions', work: `${fmt(v.T)} Gy ÷ ${fmt(v.n)}`, result: `${fmt(d, 3)} Gy` },
+            { title: 'Convert to centigray', formula: 'cGy = Gy × 100', work: `${fmt(d, 3)} × 100`, result: `${fmt(d * 100, 1)} cGy` },
+          ] };
+        }
+        const n = v.T / v.d;
+        return { label: 'Number of fractions', plain: n, steps: [
+          { title: 'Divide the total dose by the dose per fraction', formula: 'Number of fractions = Total dose ÷ Dose per fraction', work: `${fmt(v.T)} Gy ÷ ${fmt(v.d)} Gy`, result: `${fmt(n, 2)} fractions` },
+        ], note: Number.isInteger(Number(n.toFixed(6))) ? null : 'The answer is not a whole number. In practice you would round to a whole number of fractions and adjust the dose per fraction.' };
+      },
+      render(r) {
+        const main = r.plain !== undefined ? bigResult(r.label, fmt(r.plain, 2), 'fractions') : bigResult(r.label, fmt(r.gy, 2), r.unit);
+        const extra = r.gy !== undefined ? chips([{ label: 'in Gy', value: fmt(r.gy, 3) }, { label: 'in cGy', value: fmt(r.gy * 100, 1) }]) : null;
+        return h('div', null, main, extra, r.note ? notice('info', r.note) : null, stepsList(r.steps));
+      },
+    });
+  });
+
+  // ===========================================================================
+  // 2. Depth-dose explorer
+  // ===========================================================================
+  reg('pdd-explorer', 'Depth-dose explorer', 'Drag depth, field size and SSD and watch the PDD curve respond.', 'Beam physics', (el) => {
+    createTool(el, {
+      fields: [
+        { key: 'depth', label: 'Depth of the point', value: 10, unit: 'cm', min: 0, max: 30, step: 0.5, slider: true },
+        { key: 'size', label: 'Field size (square)', value: 10, unit: 'cm × cm', min: 3, max: 40, step: 1, slider: true },
+        { key: 'ssd', label: 'SSD (source-to-skin distance)', value: 100, unit: 'cm', min: 60, max: 150, step: 1, slider: true },
+        { key: 'rx', label: 'Dose you want at that depth', value: 200, unit: 'cGy', min: 1, max: 1000, step: 10 },
+      ],
+      compute(v) {
+        if (!allNumbers(v, ['depth', 'size', 'ssd', 'rx'])) return NEED_NUMBERS;
+        const d = Math.max(0, Math.min(30, v.depth));
+        const pb = C.pddBreakdown(d, v.size, v.ssd);
+        return { d, pb };
+      },
+      render(r, v) {
+        const { d, pb } = r;
+        const atDmax = v.rx / (pb.pdd / 100);
+        const chart = lineChart({
+          label: 'Percent depth dose versus depth',
+          xmin: 0, xmax: 30, ymin: 0, ymax: 110, xlabel: 'Depth in tissue (cm)', ylabel: 'Dose (% of maximum)',
+          series: [
+            { fn: (x) => C.pddBreakdown(x, v.size, v.ssd).pdd, cls: 's0', name: 'Your settings' },
+            { fn: (x) => C.pddBreakdown(x, 10, 100).pdd, cls: 's2', dashed: true, name: '10×10, SSD 100 (reference)' },
+          ],
+          vlines: [{ x: C.DMAX, label: 'dmax' }],
+          markers: [{ x: d, y: pb.pdd, label: `${fmt(pb.pdd, 1)} %` }],
+          readout: (x, y) => `${fmt(x, 1)} cm → ${fmt(y, 1)} %`,
+          yfmt: (y) => fmt(y, 0),
+        });
+        const region = d < C.DMAX ? 'This point is in the build-up region: the dose is still rising toward dmax.'
+          : d === C.DMAX ? 'This is dmax, the depth of maximum dose (100 %).'
+            : `Beyond dmax the beam is weakened as it passes through tissue, so only ${fmt(pb.pdd, 1)} % of the maximum dose arrives here.`;
+        return h('div', null,
+          bigResult(`PDD at ${fmt(d, 1)} cm`, fmt(pb.pdd, 1), '%'),
+          chips([
+            { label: `Dose needed at dmax for ${fmt(v.rx)} cGy at depth`, value: fmt(atDmax, 0) + ' cGy' },
+            { label: 'Extra dose at dmax vs. prescription', value: '+' + fmt((atDmax / v.rx - 1) * 100, 0) + ' %' },
+          ]),
+          notice('info', region),
+          chart,
+          h('p', { class: 'muted small' }, 'Hover or tap the curve to read values. Try making the field larger, or moving the SSD out to 120 cm, and see the curve rise: more scatter and a flatter inverse-square drop both help.'));
+      },
+    });
+  });
+
+  // ===========================================================================
+  // 3. Inverse-square law
+  // ===========================================================================
+  function isqDiagram(d1, d2) {
+    const W = 600;
+    const X0 = 30;
+    const cy = 116;
+    const ppu = 440 / Math.max(d1, d2); // the farther plane always sits at x = 470
+    const near = Math.min(d1, d2);
+    const far = Math.max(d1, d2);
+    const hFar = 90;
+    const hNear = (hFar * near) / far;
+    const hOf = (d) => (hFar * d) / far;
+    const svg = s('svg', { viewBox: `0 0 ${W} 268`, class: 'diagram', role: 'img', 'aria-label': `Beam spreading from the source to a plane at ${fmt(d1)} cm and a plane at ${fmt(d2)} cm` });
+    svg.append(s('path', { class: 'beam', d: `M${X0} ${cy} L${X0 + ppu * far} ${cy - hFar} L${X0 + ppu * far} ${cy + hFar} Z` }));
+    svg.append(s('circle', { class: 'source', cx: X0, cy, r: 7 }));
+    svg.append(s('text', { class: 'dg-text', x: X0, y: cy + 28, 'text-anchor': 'middle' }, 'Source'));
+    // nearer plane: label on its left; farther plane: label on its right; distance rows are staggered
+    const planes = [
+      { d: d1, name: 'd₁', cls: 'p1' },
+      { d: d2, name: 'd₂', cls: 'p2' },
+    ];
+    planes.forEach((p) => {
+      const x = X0 + ppu * p.d;
+      const hh = hOf(p.d);
+      const isNear = p.d < far || (d1 === d2 && p.name === 'd₁');
+      const row = isNear ? 230 : 252;
+      svg.append(s('line', { class: 'plane ' + p.cls, x1: x, x2: x, y1: cy - hh, y2: cy + hh }));
+      svg.append(s('line', { class: 'dim', x1: X0, x2: x, y1: row - 14, y2: row - 14 }));
+      svg.append(s('line', { class: 'dim', x1: x, x2: x, y1: row - 20, y2: row - 8 }));
+      svg.append(s('text', { class: 'dg-text', x: x, y: row + 4, 'text-anchor': 'end' }, `${p.name} = ${fmt(p.d)} cm`));
+      svg.append(s('text', { class: 'dg-note', x: isNear ? x - 8 : x + 8, y: cy - hh - 6, 'text-anchor': isNear ? 'end' : 'start' }, `area ${fmt((p.d / d1) ** 2, 2)}×`));
+    });
+    return h('div', { class: 'chart-wrap' }, svg);
+  }
+
+  reg('inverse-square', 'Inverse-square law', 'How dose rate changes when you move closer to or farther from the source.', 'Beam physics', (el) => {
+    createTool(el, {
+      fields: [
+        { key: 'r1', label: 'Dose rate at the first distance', value: 100, unit: 'cGy/min', min: 0.01, step: 1 },
+        { key: 'd1', label: 'First distance (from source)', value: 100, unit: 'cm', min: 1, max: 500, step: 1 },
+        { key: 'd2', label: 'New distance (from source)', value: 120, unit: 'cm', min: 1, max: 500, step: 1, slider: true },
+      ],
+      compute(v) {
+        if (!allNumbers(v, ['r1', 'd1', 'd2']) || v.r1 <= 0 || v.d1 <= 0 || v.d2 <= 0) return NEED_NUMBERS;
+        const f = C.inverseSquareFactor(v.d1, v.d2);
+        return { f, r2: v.r1 * f };
+      },
+      render(r, v) {
+        const steps = [
+          { title: 'Compare the distances', formula: 'Factor = (d₁ ÷ d₂)²', work: `(${fmt(v.d1)} ÷ ${fmt(v.d2)})² = ${fix(v.d1 / v.d2, 4)}²`, result: `Factor = ${fix(r.f, 4)}`, why: r.f < 1 ? 'Farther away, so the dose rate goes down.' : r.f > 1 ? 'Closer to the source, so the dose rate goes up.' : 'Same distance, so no change.' },
+          { title: 'Apply the factor to the dose rate', formula: 'New dose rate = Old dose rate × Factor', work: `${fmt(v.r1)} × ${fix(r.f, 4)}`, result: `${fmt(r.r2, 2)} cGy/min` },
+        ];
+        return h('div', null,
+          bigResult('Dose rate at the new distance', fmt(r.r2, 2), 'cGy/min'),
+          chips([{ label: 'Inverse-square factor', value: fix(r.f, 4) }, { label: 'Change', value: (r.f >= 1 ? '+' : '') + fmt((r.f - 1) * 100, 1) + ' %' }]),
+          isqDiagram(v.d1, v.d2),
+          h('p', { class: 'muted small' }, 'Why squared? The same radiation spreads over an area that grows with the square of the distance. Twice as far means four times the area, so a quarter of the dose rate.'),
+          stepsList(steps));
+      },
+    });
+  });
+
+  // ===========================================================================
+  // 4. Mayneord F factor
+  // ===========================================================================
+  reg('mayneord', 'Mayneord F factor', 'Convert a PDD measured at one SSD to a different SSD.', 'Beam physics', (el) => {
+    createTool(el, {
+      fields: [
+        { key: 'p1', label: 'PDD at the original SSD', value: 65, unit: '%', min: 1, max: 100, step: 0.1 },
+        { key: 'f1', label: 'Original SSD (f₁)', value: 80, unit: 'cm', min: 40, max: 250, step: 1 },
+        { key: 'f2', label: 'New SSD (f₂)', value: 100, unit: 'cm', min: 40, max: 250, step: 1, slider: true },
+        { key: 'depth', label: 'Depth', value: 10, unit: 'cm', min: 0.5, max: 40, step: 0.5 },
+        { key: 'dmax', label: 'Depth of maximum dose (dmax)', value: 1.5, unit: 'cm', min: 0.5, max: 4, step: 0.1 },
+      ],
+      compute(v) {
+        if (!allNumbers(v, ['p1', 'f1', 'f2', 'depth', 'dmax'])) return NEED_NUMBERS;
+        if (v.depth <= v.dmax) return { error: 'The Mayneord F factor only applies deeper than dmax. Choose a depth greater than dmax.' };
+        const F = C.mayneordF(v.f1, v.f2, v.depth, v.dmax);
+        return { F, p2: v.p1 * F };
+      },
+      render(r, v) {
+        const a = (v.f2 + v.dmax) / (v.f2 + v.depth);
+        const b = (v.f1 + v.depth) / (v.f1 + v.dmax);
+        const steps = [
+          { title: 'Inverse-square part for the NEW SSD', formula: '((f₂ + dmax) ÷ (f₂ + d))²', work: `((${fmt(v.f2)} + ${fmt(v.dmax)}) ÷ (${fmt(v.f2)} + ${fmt(v.depth)}))² = (${fix(a, 4)})²`, result: fix(a * a, 4), why: 'How much the beam weakens from dmax to the point, because of distance alone, at the new SSD.' },
+          { title: 'Inverse-square part for the OLD SSD', formula: '((f₁ + d) ÷ (f₁ + dmax))²', work: `((${fmt(v.f1)} + ${fmt(v.depth)}) ÷ (${fmt(v.f1)} + ${fmt(v.dmax)}))² = (${fix(b, 4)})²`, result: fix(b * b, 4), why: 'The same quantity at the old SSD, inverted so that it cancels out of the measured PDD.' },
+          { title: 'Multiply to get F', formula: 'F = ((f₂ + dmax) ÷ (f₂ + d))² × ((f₁ + d) ÷ (f₁ + dmax))²', work: `${fix(a * a, 4)} × ${fix(b * b, 4)}`, result: `F = ${fix(r.F, 4)}` },
+          { title: 'Correct the PDD', formula: 'New PDD = Old PDD × F', work: `${fmt(v.p1, 2)} × ${fix(r.F, 4)}`, result: `${fmt(r.p2, 2)} %` },
+        ];
+        return h('div', null,
+          bigResult('PDD at the new SSD', fmt(r.p2, 2), '%'),
+          chips([{ label: 'Mayneord F', value: fix(r.F, 4) }, { label: 'Change in PDD', value: (r.F >= 1 ? '+' : '') + fmt((r.F - 1) * 100, 1) + ' %' }]),
+          r.p2 > 100 ? notice('warn', 'The result is above 100 %, which cannot happen for a real PDD. Check your inputs.') : null,
+          notice('info', r.F > 1 ? 'Larger SSD means a flatter inverse-square drop between dmax and the point, so the PDD goes up.' : r.F < 1 ? 'Smaller SSD means a steeper inverse-square drop, so the PDD goes down.' : 'Same SSD, so nothing changes.'),
+          stepsList(steps),
+          h('p', { class: 'muted small' }, 'Mayneord F is an approximation: it corrects for the inverse-square law only and ignores small changes in scatter. It works best for moderate SSD changes.'));
+      },
+    });
+  });
+
+  // ===========================================================================
+  // 5. Field size: equivalent square, Sc, Sp
+  // ===========================================================================
+  reg('field-size', 'Field size & output factors', 'Equivalent square, collimator scatter (Sc) and phantom scatter (Sp).', 'Beam physics', (el) => {
+    createTool(el, {
+      fields: [
+        { key: 'w', label: 'Field width', value: 10, unit: 'cm', min: 3, max: 40, step: 0.5, slider: true },
+        { key: 'l', label: 'Field length', value: 20, unit: 'cm', min: 3, max: 40, step: 0.5, slider: true },
+      ],
+      compute(v) {
+        if (!allNumbers(v, ['w', 'l'])) return NEED_NUMBERS;
+        if (v.w < 3 || v.l < 3 || v.w > 40 || v.l > 40) return { error: 'Field dimensions must be between 3 and 40 cm.' };
+        const es = C.equivalentSquare(v.w, v.l);
+        return { es, sc: C.sc(es), sp: C.sp(es) };
+      },
+      render(r, v) {
+        const scp = r.sc * r.sp;
+        const bar = (label, val) => h('div', { class: 'bar-row' },
+          h('div', { class: 'bar-label' }, label),
+          h('div', { class: 'bar-track' }, h('div', { class: 'bar-fill', style: `width:${Math.max(2, Math.min(100, ((val - 0.9) / 0.2) * 100))}%` })),
+          h('div', { class: 'bar-val' }, fix(val, 3)));
+        const steps = [
+          { title: 'Equivalent square', formula: '4 × Area ÷ Perimeter', work: `4 × (${fmt(v.w)} × ${fmt(v.l)}) ÷ (2 × (${fmt(v.w)} + ${fmt(v.l)}))`, result: `${fmt(r.es, 2)} cm` },
+          { title: 'Look up Sc and Sp at this size', formula: 'Tables: Sc(ES), Sp(ES)', work: `Sc = ${fix(r.sc, 3)},  Sp = ${fix(r.sp, 3)}`, result: `Sc × Sp = ${fix(scp, 4)}`, why: 'Both factors are 1.000 for the 10×10 reference field.' },
+        ];
+        const chart = lineChart({
+          label: 'Total output factor versus equivalent square',
+          xmin: 3, xmax: 40, ymin: 0.9, ymax: 1.1, xlabel: 'Equivalent square (cm)', ylabel: 'Output factor',
+          series: [
+            { fn: (x) => C.sc(x) * C.sp(x), cls: 's0', name: 'Sc × Sp' },
+            { fn: (x) => C.sc(x), cls: 's1', name: 'Sc (head scatter)', dashed: true },
+            { fn: (x) => C.sp(x), cls: 's2', name: 'Sp (patient scatter)', dashed: true },
+          ],
+          markers: [{ x: r.es, y: scp, label: `${fix(scp, 3)}` }],
+          readout: (x, y) => `${fmt(x, 1)} cm → Sc×Sp ${fix(y, 3)}`,
+          yfmt: (y) => fix(y, 2),
+        });
+        return h('div', null,
+          bigResult('Equivalent square', fmt(r.es, 2), 'cm'),
+          h('div', { class: 'bars' }, bar('Sc', r.sc), bar('Sp', r.sp), bar('Sc × Sp', scp)),
+          notice('info', scp < 1
+            ? `Each MU delivers ${fmt((1 - scp) * 100, 1)} % LESS dose than in the 10×10 reference field, so you need more MU for the same dose.`
+            : scp > 1 ? `Each MU delivers ${fmt((scp - 1) * 100, 1)} % MORE dose than in the 10×10 reference field, so you need fewer MU for the same dose.`
+              : 'This is the reference field size, so the output factors are exactly 1.'),
+          chart, stepsList(steps));
+      },
+    });
+  });
+
+  // ===========================================================================
+  // 6 & 7. Monitor unit calculators
+  // ===========================================================================
+  function muFields(tech) {
+    const f = [
+      { key: 'dose', label: 'Prescribed dose at the point', value: 200, unit: 'cGy', min: 1, max: 1000, step: 10, help: '200 cGy = 2 Gy' },
+      { key: 'depth', label: 'Depth of the point', value: 8, unit: 'cm', min: 1.5, max: 30, step: 0.5, slider: true },
+      { key: 'width', label: tech === 'SSD' ? 'Field width on the skin' : 'Field width at isocentre', value: 10, unit: 'cm', min: 3, max: 40, step: 0.5 },
+      { key: 'length', label: tech === 'SSD' ? 'Field length on the skin' : 'Field length at isocentre', value: 12, unit: 'cm', min: 3, max: 40, step: 0.5 },
+    ];
+    if (tech === 'SSD') f.push({ key: 'ssd', label: 'SSD (source-to-skin distance)', value: 100, unit: 'cm', min: 50, max: 200, step: 1, slider: true });
+    f.push(
+      { key: 'wedge', type: 'select', label: 'Wedge', value: 'none', options: Object.entries(C.WEDGES).map(([value, w]) => ({ value, label: `${w.label}${w.factor === 1 ? '' : ' (WF ' + fix(w.factor, 2) + ')'}` })) },
+      { key: 'tray', type: 'select', label: 'Blocking tray', value: 'none', options: Object.entries(C.TRAYS).map(([value, t]) => ({ value, label: `${t.label}${t.factor === 1 ? '' : ' (TF ' + fix(t.factor, 2) + ')'}` })) },
+      { key: 'adv', type: 'select', label: 'Machine settings', value: 'no', options: [{ value: 'no', label: 'Standard: 1.000 cGy/MU, 600 MU/min' }, { value: 'yes', label: 'Customise…' }] },
+      { key: 'K', label: 'Calibration K', value: 1, unit: 'cGy/MU', min: 0.5, max: 1.5, step: 0.001, show: (v) => v.adv === 'yes' },
+      { key: 'cal', type: 'select', label: 'Calibration geometry', value: 'SAD', show: (v) => v.adv === 'yes',
+        options: [{ value: 'SAD', label: 'dmax point is 100 cm from source' }, { value: 'SSD', label: 'Skin surface is 100 cm from source' }] },
+      { key: 'rate', label: 'Dose rate setting', value: 600, unit: 'MU/min', min: 50, max: 2400, step: 50, show: (v) => v.adv === 'yes' });
+    return f;
+  }
+
+  function muInput(v, tech) {
+    const keys = ['dose', 'depth', 'width', 'length'].concat(tech === 'SSD' ? ['ssd'] : []);
+    const input = { dose: v.dose, depth: v.depth, width: v.width, length: v.length, wedge: v.wedge, tray: v.tray };
+    if (tech === 'SSD') input.ssd = v.ssd;
+    if (v.adv === 'yes') {
+      if (!allNumbers(v, ['K', 'rate']) || v.K <= 0 || v.rate <= 0) return { error: 'Enter a positive calibration and dose rate.' };
+      input.machine = { K: v.K, calibration: v.cal, rate: v.rate };
+    }
+    if (!allNumbers(v, keys)) return { error: NEED_NUMBERS.error };
+    return { input };
+  }
+
+  function renderMU(r, v, tech) {
+    const seconds = r.beamOnMin * 60;
+    return h('div', null,
+      bigResult('Monitor units to deliver', fmt(r.muRounded, 0), 'MU'),
+      chips([
+        { label: 'Exact value', value: fmt(r.mu, 2) },
+        { label: 'Dose per MU at the point', value: fix(r.perMU, 4) + ' cGy' },
+        { label: 'Beam-on time', value: seconds >= 90 ? mmss(r.beamOnMin) : fmt(seconds, 0) + ' s' },
+        { label: 'Dose at dmax (hot spot)', value: fmt(r.doseAtDmax, 0) + ' cGy' },
+      ]),
+      r.hotspotPct > 130 ? notice('info', `With one beam, the tissue at dmax receives ${fmt(r.doseAtDmax, 0)} cGy, which is ${fmt(r.hotspotPct, 0)} % of the prescription. This is why treatments often combine several beams from different angles.`) : null,
+      tech === 'SAD' && r.cross ? notice('info', `Cross-check: treating the same patient at a fixed SSD of ${fmt(r.cross.ssd, 1)} cm would need ${fmt(r.cross.mu, 1)} MU, a difference of ${fmt(Math.abs(r.cross.diffPct), 2)} %. The two techniques should agree closely; tiny differences come from rounding in the tables.`) : null,
+      h('h4', { class: 'sub' }, 'The ingredients'),
+      factorTable(r.factors),
+      stepsList(r.steps),
+      h('p', { class: 'muted small' }, 'Teaching model with generic 6 MV-like data (dmax = 1.5 cm). Not for clinical use.'));
+  }
+
+  reg('mu-ssd', 'Monitor units: SSD technique', 'Fixed source-to-skin distance. Uses PDD and the inverse-square factor.', 'Monitor units', (el) => {
+    createTool(el, {
+      fields: muFields('SSD'),
+      compute(v) {
+        const x = muInput(v, 'SSD');
+        if (x.error) return x;
+        const r = C.muSSD(x.input);
+        return r.ok ? r : { error: r.error };
+      },
+      render: (r, v) => renderMU(r, v, 'SSD'),
+    });
+  });
+
+  reg('mu-sad', 'Monitor units: SAD (isocentric) technique', 'Isocentre inside the patient. Uses TMR, no inverse-square factor.', 'Monitor units', (el) => {
+    createTool(el, {
+      fields: muFields('SAD'),
+      compute(v) {
+        const x = muInput(v, 'SAD');
+        if (x.error) return x;
+        const r = C.muSAD(x.input);
+        return r.ok ? r : { error: r.error };
+      },
+      render: (r, v) => renderMU(r, v, 'SAD'),
+    });
+  });
+
+  function workedExample(title, problem, result) {
+    return h('div', { class: 'worked card' },
+      h('div', { class: 'worked-tag' }, 'Worked example'),
+      h('h3', null, title),
+      h('p', { html: problem }),
+      bigResult('Answer', fmt(result.muRounded, 0), 'MU'),
+      stepsList(result.steps, false));
+  }
+  reg('worked-ssd', 'Worked example: SSD technique', 'A full calculation, explained one step at a time.', 'Examples', (el) => {
+    const r = C.muSSD({ dose: 200, depth: 8, width: 12, length: 15, ssd: 100, tray: 'tray' });
+    el.append(workedExample('200 cGy at 8 cm depth, SSD 100 cm',
+      'A patient is treated with a single <b>12 × 15 cm</b> field at <b>SSD 100 cm</b>, through a blocking tray. The prescription is <b>200 cGy at 8 cm depth</b>. How many monitor units?', r));
+  });
+  reg('worked-sad', 'Worked example: SAD technique', 'A full isocentric calculation with a wedge.', 'Examples', (el) => {
+    const r = C.muSAD({ dose: 180, depth: 10, width: 8, length: 8, wedge: '45' });
+    el.append(workedExample('180 cGy at isocentre, 10 cm deep, 45° wedge',
+      'The isocentre is <b>10 cm deep</b>. The field is <b>8 × 8 cm</b> at the isocentre with a <b>45° wedge</b>. The prescription is <b>180 cGy</b>. How many monitor units?', r));
+  });
+
+  // ===========================================================================
+  // 8. BED and EQD2
+  // ===========================================================================
+  const AB_OPTIONS = [
+    { value: '10', label: 'α/β = 10 Gy: most tumours, early-responding tissue' },
+    { value: '3', label: 'α/β = 3 Gy: late-responding normal tissue' },
+    { value: '1.5', label: 'α/β = 1.5 Gy: prostate (commonly assumed)' },
+    { value: 'custom', label: 'Custom value…' },
+  ];
+  const abOf = (v) => (v.abPreset === 'custom' ? v.abCustom : parseFloat(v.abPreset));
+
+  reg('bed', 'BED & EQD2 (biological dose)', 'Compare different fractionation schedules on one biological scale.', 'Radiobiology', (el) => {
+    createTool(el, {
+      fields: [
+        { key: 'n', label: 'Number of fractions', value: 20, unit: 'fractions', min: 1, max: 60, step: 1 },
+        { key: 'd', label: 'Dose per fraction', value: 2.75, unit: 'Gy', min: 0.1, max: 30, step: 0.05, slider: true },
+        { key: 'abPreset', type: 'select', label: 'Tissue (α/β ratio)', value: '10', options: AB_OPTIONS },
+        { key: 'abCustom', label: 'Custom α/β', value: 5, unit: 'Gy', min: 0.5, max: 30, step: 0.5, show: (v) => v.abPreset === 'custom' },
+      ],
+      compute(v) {
+        const ab = abOf(v);
+        if (!allNumbers(v, ['n', 'd']) || !isFinite(ab) || v.n <= 0 || v.d <= 0 || ab <= 0) return NEED_NUMBERS;
+        return { ab, T: v.n * v.d, bed: C.bed(v.n, v.d, ab), eqd2: C.eqd2(v.n, v.d, ab) };
+      },
+      render(r, v) {
+        const steps = [
+          { title: 'Total physical dose', formula: 'Total = n × d', work: `${fmt(v.n)} × ${fmt(v.d, 3)}`, result: `${fmt(r.T, 2)} Gy` },
+          { title: 'Biologically effective dose', formula: 'BED = n × d × (1 + d ÷ (α/β))', work: `${fmt(v.n)} × ${fmt(v.d, 3)} × (1 + ${fmt(v.d, 3)} ÷ ${fmt(r.ab)})`, result: `BED = ${fmt(r.bed, 2)} Gy${fmt(r.ab)}`, why: 'The bracket is the "fraction-size penalty": the bigger each fraction, the more biological effect per Gy.' },
+          { title: 'Equivalent dose in 2 Gy fractions', formula: 'EQD2 = BED ÷ (1 + 2 ÷ (α/β))', work: `${fmt(r.bed, 2)} ÷ (1 + 2 ÷ ${fmt(r.ab)})`, result: `EQD2 = ${fmt(r.eqd2, 2)} Gy`, why: 'EQD2 answers: "what total dose, given in ordinary 2 Gy fractions, would have the same biological effect?"' },
+        ];
+        const T = r.T;
+        const chart = lineChart({
+          label: 'BED versus dose per fraction for the same total dose', legendLeft: true,
+          xmin: 0.5, xmax: 10, ymin: 0, ymax: Math.ceil((T * (1 + 10 / Math.min(3, r.ab))) / 10) * 10,
+          xlabel: 'Dose per fraction (Gy), same total dose', ylabel: 'BED (Gy)',
+          series: [
+            { fn: (x) => T * (1 + x / 3), cls: 's1', name: 'Late tissue (α/β 3)' },
+            { fn: (x) => T * (1 + x / 10), cls: 's0', name: 'Tumour (α/β 10)' },
+          ],
+          markers: [{ x: Math.min(10, v.d), y: T * (1 + Math.min(10, v.d) / r.ab), label: `${fmt(r.bed, 1)}` }],
+          readout: (x, y) => `${fmt(x, 1)} Gy/fx → BED ${fmt(y, 1)}`,
+          xfmt: (x) => fmt(x, 1), yfmt: (y) => fmt(y, 0),
+        });
+        return h('div', null,
+          bigResult('Biologically effective dose (BED)', fmt(r.bed, 1), `Gy${fmt(r.ab)}`),
+          chips([{ label: 'EQD2', value: fmt(r.eqd2, 1) + ' Gy' }, { label: 'Total physical dose', value: fmt(T, 1) + ' Gy' }, { label: 'α/β used', value: fmt(r.ab) + ' Gy' }]),
+          chart,
+          h('p', { class: 'muted small' }, 'The chart keeps the total physical dose fixed. Larger fractions raise late-tissue BED much faster than tumour BED. That is the biological reason hypofractionation needs care.'),
+          stepsList(steps),
+          h('p', { class: 'muted small' }, 'Simple linear-quadratic model. It ignores tumour repopulation during treatment and incomplete repair between fractions.'));
+      },
+    });
+  });
+
+  // ===========================================================================
+  // 9. Equivalent regimen converter
+  // ===========================================================================
+  reg('regimen', 'Fractionation converter', 'Find the dose per fraction that gives the same biological effect in a different number of fractions.', 'Radiobiology', (el) => {
+    createTool(el, {
+      fields: [
+        { type: 'heading', label: 'Schedule you know' },
+        { key: 'n1', label: 'Fractions', value: 30, unit: 'fractions', min: 1, max: 60, step: 1 },
+        { key: 'd1', label: 'Dose per fraction', value: 2, unit: 'Gy', min: 0.1, max: 30, step: 0.1 },
+        { type: 'heading', label: 'Schedule you want' },
+        { key: 'n2', label: 'New number of fractions', value: 20, unit: 'fractions', min: 1, max: 60, step: 1 },
+        { key: 'abPreset', type: 'select', label: 'Tissue (α/β ratio)', value: '3', options: AB_OPTIONS },
+        { key: 'abCustom', label: 'Custom α/β', value: 5, unit: 'Gy', min: 0.5, max: 30, step: 0.5, show: (v) => v.abPreset === 'custom' },
+      ],
+      compute(v) {
+        const ab = abOf(v);
+        if (!allNumbers(v, ['n1', 'd1', 'n2']) || !isFinite(ab) || v.n1 <= 0 || v.d1 <= 0 || v.n2 <= 0 || ab <= 0) return NEED_NUMBERS;
+        const b = C.bed(v.n1, v.d1, ab);
+        const d2 = C.equivalentDosePerFraction(b, v.n2, ab);
+        return { ab, b, d2, T1: v.n1 * v.d1, T2: v.n2 * d2 };
+      },
+      render(r, v) {
+        const steps = [
+          { title: 'BED of the schedule you know', formula: 'BED = n₁ × d₁ × (1 + d₁ ÷ (α/β))', work: `${fmt(v.n1)} × ${fmt(v.d1, 3)} × (1 + ${fmt(v.d1, 3)} ÷ ${fmt(r.ab)})`, result: `BED = ${fmt(r.b, 2)} Gy${fmt(r.ab)}` },
+          { title: 'Find d₂ so the new schedule has the same BED', formula: 'n₂ × d₂ × (1 + d₂ ÷ (α/β)) = BED   →   d₂ = ( −(α/β) + √((α/β)² + 4 × (α/β) × BED ÷ n₂) ) ÷ 2', work: `d₂ = ( −${fmt(r.ab)} + √(${fmt(r.ab)}² + 4 × ${fmt(r.ab)} × ${fmt(r.b, 2)} ÷ ${fmt(v.n2)}) ) ÷ 2`, result: `d₂ = ${fmt(r.d2, 3)} Gy`, why: 'This comes from rearranging the BED equation into a quadratic in d₂ and solving it.' },
+          { title: 'Total dose of the new schedule', formula: 'Total = n₂ × d₂', work: `${fmt(v.n2)} × ${fmt(r.d2, 3)}`, result: `${fmt(r.T2, 2)} Gy` },
+        ];
+        return h('div', null,
+          bigResult('Equivalent dose per fraction', fmt(r.d2, 2), 'Gy'),
+          chips([{ label: 'New total dose', value: fmt(r.T2, 1) + ' Gy' }, { label: 'Old total dose', value: fmt(r.T1, 1) + ' Gy' }, { label: 'Same BED', value: fmt(r.b, 1) + ' Gy' + fmt(r.ab) }]),
+          notice('info', `${fmt(v.n2)} fractions of ${fmt(r.d2, 2)} Gy has the same biological effect (for α/β = ${fmt(r.ab)} Gy) as ${fmt(v.n1)} fractions of ${fmt(v.d1, 2)} Gy. The total physical dose is ${r.T2 < r.T1 ? 'lower' : 'higher'} because the fractions are ${r.d2 > v.d1 ? 'larger' : 'smaller'}.`),
+          stepsList(steps),
+          h('p', { class: 'muted small' }, 'Real prescriptions are chosen by clinicians using trial evidence, not by this formula alone.'));
+      },
+    });
+  });
+
+  // ===========================================================================
+  // 10. Radioactive decay
+  // ===========================================================================
+  reg('decay', 'Radioactive decay', 'How much activity is left after some time? Half-lives of common clinical sources.', 'Sources', (el) => {
+    createTool(el, {
+      fields: [
+        { key: 'iso', type: 'select', label: 'Radioactive source', value: 'Ir-192',
+          options: Object.entries(C.ISOTOPES).map(([k, i]) => ({ value: k, label: `${k} (${i.use})` })).concat([{ value: 'custom', label: 'Custom half-life…' }]) },
+        { key: 'hl', label: 'Half-life', value: 30, unit: 'days', min: 0.01, step: 1, show: (v) => v.iso === 'custom' },
+        { key: 'a0', label: 'Starting activity', value: 10, unit: 'Ci (any unit)', min: 0.0001, step: 0.5 },
+        { key: 't', label: 'Time elapsed', value: 90, min: 0, step: 1 },
+        { key: 'unit', type: 'select', label: 'Time unit', value: 'days', options: Object.keys(C.TIME_UNITS_DAYS).map((u) => ({ value: u, label: u })) },
+      ],
+      compute(v) {
+        if (!allNumbers(v, ['a0', 't']) || v.a0 <= 0 || v.t < 0) return NEED_NUMBERS;
+        const hl = v.iso === 'custom' ? v.hl : C.ISOTOPES[v.iso].halfLifeDays;
+        if (!isFinite(hl) || hl <= 0) return NEED_NUMBERS;
+        const tDays = v.t * C.TIME_UNITS_DAYS[v.unit];
+        const n = tDays / hl;
+        const frac = C.remainingFraction(tDays, hl);
+        return { hl, tDays, n, frac, a: v.a0 * frac, lambda: C.decayConstant(hl) };
+      },
+      render(r, v) {
+        const hlText = r.hl >= 365 ? `${fmt(r.hl / 365.25, 2)} years` : `${fmt(r.hl, 2)} days`;
+        const steps = [
+          { title: 'Count how many half-lives have passed', formula: 'n = elapsed time ÷ half-life', work: `${fmt(r.tDays, 2)} days ÷ ${fmt(r.hl, 2)} days`, result: `n = ${fmt(r.n, 3)} half-lives`, why: 'Everything in decay is measured in half-lives. One half-life: half left. Two: a quarter. Three: an eighth.' },
+          { title: 'Fraction remaining', formula: 'Fraction = (½)ⁿ', work: `0.5 ^ ${fmt(r.n, 3)}`, result: `${fix(r.frac, 4)}  (${fmt(r.frac * 100, 2)} %)` },
+          { title: 'Activity now', formula: 'A = A₀ × Fraction', work: `${fmt(v.a0)} × ${fix(r.frac, 4)}`, result: `${fmt(r.a, 3)}` },
+          { title: 'Decay constant (for reference)', formula: 'λ = 0.693 ÷ half-life', work: `0.693 ÷ ${fmt(r.hl, 2)} days`, result: `λ = ${fmt(r.lambda, 5)} per day`, why: 'The same law written as A = A₀ × e^(−λt). Both forms give identical answers.' },
+        ];
+        const xmax = Math.min(10, Math.max(5, Math.ceil(r.n * 1.1)));
+        const chart = lineChart({
+          label: 'Percent of activity remaining versus half-lives elapsed',
+          xmin: 0, xmax, ymin: 0, ymax: 105, xlabel: 'Half-lives elapsed', ylabel: 'Activity remaining (%)',
+          series: [{ fn: (x) => 100 * Math.pow(0.5, x), cls: 's0' }],
+          markers: [{ x: Math.min(xmax, r.n), y: r.frac * 100, label: `${fmt(r.frac * 100, 1)} %` }],
+          readout: (x, y) => `${fmt(x, 2)} half-lives → ${fmt(y, 1)} %`, yfmt: (y) => fmt(y, 0), xfmt: (x) => fmt(x, 0),
+        });
+        return h('div', null,
+          bigResult('Activity remaining', fmt(r.a, 3), 'same unit as the start'),
+          chips([{ label: 'Fraction left', value: fmt(r.frac * 100, 2) + ' %' }, { label: 'Half-lives elapsed', value: fmt(r.n, 2) }, { label: 'Half-life', value: hlText }]),
+          chart, stepsList(steps));
+      },
+    });
+  });
+
+  // ===========================================================================
+  // 11. Cobalt-60 treatment time
+  // ===========================================================================
+  reg('co60', 'Cobalt-60 treatment time', 'Cobalt units have no monitor units: you calculate the beam-on time, and it grows as the source decays.', 'Sources', (el) => {
+    createTool(el, {
+      fields: [
+        { key: 'r0', label: 'Dose rate on the reference date', value: 150, unit: 'cGy/min', min: 1, max: 500, step: 1, help: 'At the prescription point, for this field size and depth.' },
+        { key: 'months', label: 'Time since the reference date', value: 18, unit: 'months', min: 0, max: 120, step: 1, slider: true },
+        { key: 'dose', label: 'Prescribed dose', value: 200, unit: 'cGy', min: 1, max: 1000, step: 10 },
+      ],
+      compute(v) {
+        if (!allNumbers(v, ['r0', 'months', 'dose']) || v.r0 <= 0 || v.dose <= 0 || v.months < 0) return NEED_NUMBERS;
+        const years = v.months / 12;
+        return { years, ...C.co60Time(v.r0, years, v.dose), t0: v.dose / v.r0 };
+      },
+      render(r, v) {
+        const T = C.CO60_HALF_LIFE_YEARS;
+        const steps = [
+          { title: 'Fraction of the original activity left', formula: 'Fraction = (½)^(t ÷ T½)   with T½ = 5.27 years', work: `0.5 ^ (${fmt(r.years, 3)} ÷ ${T})`, result: `${fix(r.fraction, 4)}  (${fmt(r.fraction * 100, 2)} %)`, why: 'Co-60 loses about 1.1 % of its output every month.' },
+          { title: 'Dose rate today', formula: 'Rate = Rate on reference date × Fraction', work: `${fmt(v.r0)} × ${fix(r.fraction, 4)}`, result: `${fmt(r.rate, 2)} cGy/min` },
+          { title: 'Treatment time', formula: 'Time = Prescribed dose ÷ Dose rate', work: `${fmt(v.dose)} ÷ ${fmt(r.rate, 2)}`, result: `${fmt(r.minutes, 3)} min  =  ${mmss(r.minutes)}`, why: 'A weaker source needs a longer beam-on time to deliver the same dose.' },
+        ];
+        const xmax = Math.max(10, Math.ceil(r.years * 1.2));
+        const chart = lineChart({
+          label: 'Cobalt-60 dose rate versus time',
+          xmin: 0, xmax, ymin: 0, ymax: Math.ceil(v.r0 * 1.05 / 10) * 10, xlabel: 'Years since reference date', ylabel: 'Dose rate (cGy/min)',
+          series: [{ fn: (x) => v.r0 * Math.pow(0.5, x / T), cls: 's0' }],
+          markers: [{ x: r.years, y: r.rate, label: `${fmt(r.rate, 1)} cGy/min` }],
+          readout: (x, y) => `${fmt(x, 1)} y → ${fmt(y, 1)} cGy/min`, yfmt: (y) => fmt(y, 0), xfmt: (x) => fmt(x, 0),
+        });
+        return h('div', null,
+          bigResult('Treatment time', mmss(r.minutes), ''),
+          chips([{ label: 'Dose rate today', value: fmt(r.rate, 1) + ' cGy/min' }, { label: 'Time on reference date', value: mmss(r.t0) }, { label: 'Longer by', value: fmt((r.minutes / r.t0 - 1) * 100, 1) + ' %' }]),
+          chart, stepsList(steps));
+      },
+    });
+  });
+
+  DE.widgets = widgets;
+  DE.widgetOrder = order;
+  DE.mountWidget = function (id, el) {
+    const w = widgets[id];
+    if (!w) { el.append(notice('warn', `Unknown widget: ${id}`)); return; }
+    w.mount(el);
+  };
+})();
+
+</script>
+  <script>
+/* DoseCalc EDU - lesson content.
+ * A block is either an HTML string, or { widget: 'id' } to mount an interactive widget. */
+(function () {
+  'use strict';
+  const DE = window.DoseEdu;
+  const { fr } = DE;
+
+  const formula = (html, caption) =>
+    `<div class="formula">${html}${caption ? `<div class="formula-cap">${caption}</div>` : ''}</div>`;
+  const callout = (kind, title, html) =>
+    `<div class="callout ${kind}"><div class="callout-title">${title}</div><div>${html}</div></div>`;
+  const symbols = (rows) =>
+    `<dl class="symbols">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
+
+  const lessons = [
+    // -----------------------------------------------------------------------
+    {
+      id: 'dose-basics', title: 'Dose, Gray and fractions', minutes: 6, level: 'Beginner',
+      summary: 'What "dose" means, the units we use, and how a treatment is split into sessions.',
+      goals: ['Explain what absorbed dose is', 'Convert between Gy and cGy', 'Calculate total dose from dose per fraction and fractions'],
+      blocks: [
+        '<h3>The big idea</h3><p>Radiation therapy treats cancer by depositing energy in tissue. <b>Dose</b> tells us <em>how much</em> energy each kilogram of tissue absorbs. Too little and the tumour survives; too much and healthy tissue is harmed. Dose calculation is the craft of getting that number right.</p>',
+        formula('1 Gray (Gy) = 1 joule of energy absorbed per 1 kilogram of tissue', 'The SI unit of absorbed dose'),
+        '<p>In the clinic you will hear two units all the time:</p><ul><li><b>Gray (Gy)</b>: the standard unit. A typical course is 40 to 70 Gy.</li><li><b>Centigray (cGy)</b>: one hundredth of a Gray. Machine and monitor-unit calculations use cGy because the numbers are handier.</li></ul>',
+        formula('1 Gy = 100 cGy', 'So 2 Gy = 200 cGy, and 250 cGy = 2.5 Gy'),
+        '<h3>Why not deliver everything at once?</h3><p>Treatment is split into many small sessions called <b>fractions</b>. Between sessions healthy tissue repairs itself more effectively than most tumours do, so splitting the dose protects normal tissue while still controlling the cancer. A standard schedule is about <b>2 Gy per fraction, once a day, five days a week</b>.</p>',
+        formula('Total dose = Dose per fraction × Number of fractions', 'Example: 2 Gy × 30 fractions = 60 Gy'),
+        callout('tip', 'Vocabulary', '<b>Conventional fractionation</b>: about 2 Gy per fraction. <b>Hypofractionation</b>: fewer, larger fractions (for example 2.75 Gy × 20). <b>Prescription</b>: the written plan stating the dose, the number of fractions, and where the dose is specified.'),
+        '<h3>Try it</h3><p>Change the question type and the numbers. Notice that the answer is always shown in both Gy and cGy.</p>',
+        { widget: 'fractionation' },
+      ],
+      keyPoints: ['Dose = energy absorbed per unit mass. 1 Gy = 1 J/kg = 100 cGy.', 'Total dose = dose per fraction × number of fractions.', 'Fractionation spares healthy tissue because it repairs between sessions.'],
+      quiz: [
+        { q: 'A prescription says 250 cGy per fraction. How many Gray is that?', options: ['0.25 Gy', '2.5 Gy', '25 Gy', '250 Gy'], answer: 1, why: '1 Gy = 100 cGy, so 250 cGy ÷ 100 = 2.5 Gy.' },
+        { q: 'A patient gets 3 Gy per fraction for 15 fractions. What is the total dose?', options: ['18 Gy', '45 Gy', '5 Gy', '450 Gy'], answer: 1, why: 'Total = 3 Gy × 15 = 45 Gy.' },
+        { q: 'Why is radiation delivered in many fractions rather than all at once?', options: ['The machine cannot deliver high doses', 'Healthy tissue repairs between fractions better than most tumours', 'It makes the tumour absorb more energy', 'Patients can only lie still for a short time'], answer: 1, why: 'Fractionation takes advantage of the difference in repair between normal tissue and tumour.' },
+      ],
+    },
+    // -----------------------------------------------------------------------
+    {
+      id: 'pdd', title: 'Depth dose: how dose changes with depth', minutes: 8, level: 'Beginner',
+      summary: 'Why a photon beam delivers less dose the deeper it goes, and how Percent Depth Dose (PDD) measures that.',
+      goals: ['Describe build-up and dmax', 'Define PDD and use it', 'Know what changes the PDD curve'],
+      blocks: [
+        '<h3>The shape of a photon beam in tissue</h3><p>A high-energy photon beam does <em>not</em> deposit its maximum dose at the skin. Instead:</p><ol><li><b>Build-up region:</b> dose rises over the first centimetre or two as electrons set in motion by the photons build up. This spares the skin.</li><li><b>dmax:</b> the depth of maximum dose. For a 6 MV beam it is about <b>1.5 cm</b>.</li><li><b>Fall-off:</b> deeper than dmax the beam is gradually absorbed and also spreads out, so the dose drops.</li></ol>',
+        '<h3>Percent Depth Dose (PDD)</h3><p>PDD answers one question: <em>"What percentage of the maximum dose reaches this depth?"</em></p>',
+        formula(`PDD(d) = ${fr('Dose at depth d', 'Dose at dmax')} × 100 %`, 'Measured along the central axis, with the same field size and the same source-to-skin distance (SSD)'),
+        callout('example', 'Example', 'At 10 cm depth a 6 MV beam has PDD ≈ 67 %. To deliver <b>200 cGy at 10 cm</b> we need <b>200 ÷ 0.67 ≈ 299 cGy at dmax</b>. The tissue near the surface gets about 50 % more than the tumour does. That is why real treatments combine several beams from different directions.'),
+        '<h3>What changes the PDD?</h3><ul><li><b>Beam energy:</b> higher energy penetrates deeper, so higher PDD.</li><li><b>Field size:</b> larger fields produce more scatter, so higher PDD at depth.</li><li><b>SSD:</b> a longer SSD makes the inverse-square drop flatter, so higher PDD.</li></ul>',
+        '<h3>Explore it</h3><p>Move the sliders. The dashed line is the 10×10 cm, SSD 100 cm reference curve, so you can see exactly what each change does.</p>',
+        { widget: 'pdd-explorer' },
+      ],
+      keyPoints: ['Dose peaks at dmax (about 1.5 cm for 6 MV) and falls beyond it.', 'PDD = dose at depth ÷ dose at dmax × 100 %.', 'Larger field, larger SSD or higher energy all increase PDD.'],
+      quiz: [
+        { q: 'What does "PDD = 67 % at 10 cm" mean?', options: ['67 % of the dose at dmax reaches 10 cm', '67 cGy is delivered at 10 cm', 'The beam is 67 % attenuated at the skin', 'The dose at 10 cm is 67 % of the prescription'], answer: 0, why: 'PDD compares the dose at depth with the maximum dose (at dmax) on the same beam axis.' },
+        { q: 'You want 200 cGy at a depth where PDD is 80 %. What dose is delivered at dmax by that single beam?', options: ['160 cGy', '200 cGy', '250 cGy', '280 cGy'], answer: 2, why: 'Dose at dmax = 200 ÷ 0.80 = 250 cGy.' },
+        { q: 'Which change increases PDD at a given depth?', options: ['Increasing the SSD', 'Decreasing the field size', 'Decreasing the beam energy', 'Making the patient thicker'], answer: 0, why: 'A longer SSD flattens the inverse-square fall-off between dmax and the point, so the PDD rises.' },
+      ],
+    },
+    // -----------------------------------------------------------------------
+    {
+      id: 'inverse-square', title: 'Inverse-square law and changing SSD', minutes: 8, level: 'Beginner',
+      summary: 'Why dose rate falls with distance, and how to correct PDD when the SSD changes.',
+      goals: ['Apply the inverse-square law', 'Estimate dose changes from small setup errors', 'Use the Mayneord F factor'],
+      blocks: [
+        '<h3>Light from a bulb</h3><p>Radiation leaves the machine from (almost) a single point and spreads out like light from a bulb. At twice the distance the same radiation is spread over <b>four times</b> the area, so each patch of area gets <b>a quarter</b> as much.</p>',
+        formula(`Dose rate₂ = Dose rate₁ × (${fr('d₁', 'd₂')})²`, 'd₁ and d₂ are distances from the <em>source</em>'),
+        callout('example', 'Example', 'A beam delivers 100 cGy/min at 100 cm. At 120 cm: 100 × (100 ÷ 120)² = <b>69.4 cGy/min</b>.'),
+        callout('tip', 'A useful rule of thumb', 'Near 100 cm, each <b>1 cm</b> of distance error changes the dose by about <b>2 %</b>. (Because (100/101)² ≈ 0.98.) Accurate setup matters.'),
+        { widget: 'inverse-square' },
+        '<h3>When the SSD changes: Mayneord F</h3><p>PDD tables are measured at one SSD (often 100 cm). If you treat at a different SSD, the inverse-square part of the fall-off changes. The <b>Mayneord F factor</b> corrects for that:</p>',
+        formula(`F = (${fr('f₂ + d<sub>max</sub>', 'f₂ + d')})² × (${fr('f₁ + d', 'f₁ + d<sub>max</sub>')})²      and      PDD₂ = PDD₁ × F`, 'f₁ = original SSD, f₂ = new SSD, d = depth, dmax = depth of maximum dose'),
+        { widget: 'mayneord' },
+      ],
+      keyPoints: ['Dose rate ∝ 1 / distance².', 'Double the distance = one quarter of the dose rate.', 'At 100 cm, 1 cm of error ≈ 2 % dose error.', 'Mayneord F converts PDD from one SSD to another.'],
+      quiz: [
+        { q: 'A patient is moved from 100 cm to 200 cm from the source. The dose rate becomes…', options: ['1/2', '1/4', '1/8', '1/16'], answer: 1, why: '(100 ÷ 200)² = (1/2)² = 1/4.' },
+        { q: 'At about 100 cm from the source, a patient is accidentally set up 2 cm too close. The dose rate is roughly…', options: ['0.2 % higher', '2 % higher', '4 % higher', '20 % higher'], answer: 2, why: '(100 ÷ 98)² ≈ 1.041, so about 4 % higher.' },
+        { q: 'What does the Mayneord F factor do?', options: ['Corrects PDD for a different SSD', 'Corrects dose for a wedge', 'Converts Gy to cGy', 'Corrects for the half-life of cobalt'], answer: 0, why: 'F adjusts a PDD measured at one SSD so it can be used at another.' },
+      ],
+    },
+    // -----------------------------------------------------------------------
+    {
+      id: 'field-size', title: 'Field size: equivalent square, Sc and Sp', minutes: 8, level: 'Intermediate',
+      summary: 'Why the same MU gives different dose in small and large fields, and how to handle rectangles.',
+      goals: ['Convert a rectangle to an equivalent square', 'Explain Sc and Sp', 'Predict whether a field needs more or fewer MU'],
+      blocks: [
+        '<h3>Bigger field, more dose per MU</h3><p>When the opening is larger, more radiation scatters around. This increases the dose for the same number of monitor units. We measure this relative to the <b>10 × 10 cm reference field</b>, where the factor is exactly 1.000. Two effects add up:</p><ul><li><b>Sc (collimator scatter factor):</b> scatter produced in the machine head (flattening filter, collimators). Depends on the collimator opening.</li><li><b>Sp (phantom scatter factor):</b> scatter produced inside the patient. Depends on the irradiated field size at depth.</li></ul>',
+        formula('Total output factor = Sc × Sp', 'Both equal 1.000 for a 10 × 10 cm field'),
+        '<h3>Rectangles: the equivalent square</h3><p>Tables are for square fields. A rectangle of the same scatter behaviour is represented by its <b>equivalent square</b>:</p>',
+        formula(`Equivalent square = ${fr('4 × Area', 'Perimeter')} = ${fr('2 × width × length', 'width + length')}`),
+        callout('example', 'Example', 'A 10 × 20 cm field: Area = 200, Perimeter = 60, so 4 × 200 ÷ 60 = <b>13.3 cm</b>. It scatters like a 13.3 × 13.3 cm square, not like a 15 × 15.'),
+        { widget: 'field-size' },
+        callout('tip', 'Rule of thumb', '<b>Small field → output factor below 1 → more MU needed.</b> Large field → output factor above 1 → fewer MU needed.'),
+      ],
+      keyPoints: ['Reference field is 10 × 10 cm, where Sc = Sp = 1.', 'Equivalent square = 4A ÷ P.', 'Smaller fields give less dose per MU, so need more MU.'],
+      quiz: [
+        { q: 'What is the equivalent square of an 8 × 12 cm field?', options: ['9.6 cm', '10.0 cm', '8.0 cm', '20.0 cm'], answer: 0, why: '4 × (8 × 12) ÷ (2 × (8 + 12)) = 384 ÷ 40 = 9.6 cm.' },
+        { q: 'Compared with the 10 × 10 reference field, a 4 × 4 cm field delivers per MU…', options: ['More dose, so fewer MU', 'Less dose, so more MU', 'The same dose', 'Depends only on depth'], answer: 1, why: 'Less scatter in small fields means lower output factors, so more MU are required for the same dose.' },
+        { q: 'Collimator scatter factor Sc mainly describes scatter from…', options: ['The patient', 'The machine head', 'The treatment couch', 'The wedge only'], answer: 1, why: 'Sc is the output change caused by the machine head; Sp is the scatter inside the patient or phantom.' },
+      ],
+    },
+    // -----------------------------------------------------------------------
+    {
+      id: 'mu-ssd', title: 'Monitor units: the SSD technique', minutes: 12, level: 'Intermediate',
+      summary: 'The core calculation: how many monitor units does the machine need to deliver the prescribed dose?',
+      goals: ['Explain what a monitor unit is', 'Build the MU formula from its parts', 'Calculate MU for a fixed-SSD field'],
+      blocks: [
+        '<h3>What is a monitor unit?</h3><p>A linear accelerator does not count minutes. It counts <b>monitor units (MU)</b> on a built-in ionisation chamber. The machine is <b>calibrated</b> so that under reference conditions 1 MU gives a known dose. In this app the reference condition is <b>1.000 cGy per MU</b>, at dmax, with a 10 × 10 cm field and the dmax point 100 cm from the source.</p>',
+        '<h3>The key idea</h3><p>Real patients are never in reference conditions. So we correct the reference dose per MU for <em>every</em> difference, then divide the prescription by the result:</p>',
+        formula(`MU = ${fr('Prescribed dose', 'Dose delivered per MU at that point')}`),
+        '<p>In the <b>SSD technique</b> the skin surface is placed at a fixed distance (SSD) from the source and the dose depth is below it. The dose delivered per MU is:</p>',
+        formula(`MU = ${fr('Prescribed dose', 'K × Sc × Sp × <span class="frac inline"><span>PDD</span><span>100</span></span> × ISF × WF × TF')}`),
+        symbols([
+          ['K', 'Calibration: cGy per MU in the reference setup (1.000 here).'],
+          ['Sc', 'Collimator scatter factor. Bigger opening, more dose.'],
+          ['Sp', 'Phantom scatter factor. Bigger field in the patient, more dose.'],
+          ['PDD', 'Percent depth dose. How much of the maximum dose reaches the prescription depth.'],
+          ['ISF', 'Inverse-square factor = (calibration distance ÷ source-to-dmax distance)². Corrects for distance.'],
+          ['WF', 'Wedge factor. A wedge absorbs part of the beam.'],
+          ['TF', 'Tray factor. A blocking tray absorbs a little too.'],
+        ]),
+        callout('tip', 'Read it like a sentence', 'Start with 1 cGy per MU. Multiply by how much the field size boosts it (Sc, Sp). Multiply by how much of it survives to the depth (PDD). Multiply by how much distance weakens it (ISF). Multiply by what the wedge and tray absorb (WF, TF). That is the dose per MU. Divide the prescription by it.'),
+        '<h3>A complete worked example</h3><p>Open the box below to see every step with the actual numbers.</p>',
+        { widget: 'worked-ssd' },
+        '<h3>Now try your own</h3><p>Change any input and watch the MU, the factor table and the steps update. Try adding a wedge, or moving the SSD.</p>',
+        { widget: 'mu-ssd' },
+      ],
+      keyPoints: ['MU = prescribed dose ÷ dose per MU.', 'Dose per MU = K × Sc × Sp × PDD/100 × ISF × WF × TF.', 'Anything that weakens the beam (depth, distance, wedge) increases MU; anything that boosts it (bigger field) decreases MU.'],
+      quiz: [
+        { q: 'The dose per MU at the prescription point is 0.80 cGy/MU. How many MU deliver 200 cGy?', options: ['160 MU', '250 MU', '200 MU', '400 MU'], answer: 1, why: 'MU = 200 ÷ 0.80 = 250.' },
+        { q: 'All else equal, you add a 45° wedge (wedge factor 0.68). What happens to the MU?', options: ['They decrease', 'They stay the same', 'They increase by about 47 %', 'They increase by 68 %'], answer: 2, why: 'MU scales with 1 ÷ WF = 1 ÷ 0.68 ≈ 1.47, so about 47 % more MU.' },
+        { q: 'All else equal, the patient is set up at a longer SSD. What happens to the MU needed?', options: ['They increase', 'They decrease', 'They stay the same', 'Cannot tell'], answer: 0, why: 'The inverse-square factor drops more than the PDD rises, so each MU delivers less dose at the point: more MU are needed.' },
+      ],
+    },
+    // -----------------------------------------------------------------------
+    {
+      id: 'mu-sad', title: 'The isocentric (SAD) technique and TMR', minutes: 12, level: 'Intermediate',
+      summary: 'Treating from many angles around one point, and the tissue-maximum ratio that makes the maths simpler.',
+      goals: ['Describe the SAD technique', 'Define TMR and explain how it differs from PDD', 'Calculate MU for an isocentric field'],
+      blocks: [
+        '<h3>One point, many angles</h3><p>In the <b>isocentric (SAD) technique</b> the machine rotates around a fixed point, the <b>isocentre</b>, which is placed inside the patient (usually in the tumour). The <b>source-to-axis distance (SAD)</b> is always 100 cm. Because the patient does not move between beams, setups are faster and more accurate.</p>',
+        '<p>The skin distance now changes with every gantry angle, so PDD is awkward. Instead we use the <b>tissue-maximum ratio</b>:</p>',
+        formula(`TMR(d) = ${fr('Dose at depth d', 'Dose at dmax <em>at the same distance from the source</em>')}`),
+        callout('tip', 'PDD vs TMR: the one difference that matters', 'PDD compares two points at <em>different</em> distances from the source, so it contains an inverse-square effect. TMR compares two points at the <em>same</em> distance, so it measures tissue absorption only. That is why the SAD formula has <b>no inverse-square factor</b>.'),
+        '<p>The monitor-unit formula is the same idea as before, with TMR in place of PDD and no ISF:</p>',
+        formula(`MU = ${fr('Prescribed dose', 'K × Sc × Sp × TMR × WF × TF')}`),
+        { widget: 'worked-sad' },
+        '<h3>Calculate your own</h3><p>The result box includes a <b>cross-check</b>: the same patient treated at a fixed SSD. The two techniques should agree to within a fraction of a percent. That agreement is how medical physicists verify their data.</p>',
+        { widget: 'mu-sad' },
+      ],
+      keyPoints: ['SAD technique: isocentre inside the patient, source-to-axis distance fixed at 100 cm.', 'TMR = dose at depth ÷ dose at dmax, same distance from source.', 'MU = dose ÷ (K × Sc × Sp × TMR × WF × TF). No ISF at the isocentre.'],
+      quiz: [
+        { q: 'What is the main practical advantage of the SAD technique?', options: ['Higher beam energy', 'The patient does not need to be moved when the gantry rotates to a new beam angle', 'It needs no calibration', 'It removes scatter'], answer: 1, why: 'With the isocentre fixed in the patient, you only rotate the gantry between beams.' },
+        { q: 'Why does the SAD monitor-unit formula not contain an inverse-square factor?', options: ['Because radiation does not obey the inverse-square law', 'Because TMR compares points at the same distance from the source, and the isocentre is always at the same distance', 'Because wedges cancel it', 'Because MU are measured in minutes'], answer: 1, why: 'The isocentre is always 100 cm from the source, and TMR already removes the distance effect.' },
+        { q: 'What is the TMR at dmax?', options: ['0', '0.5', '1.000', '100'], answer: 2, why: 'At dmax the dose compared with itself is 1.000.' },
+      ],
+    },
+    // -----------------------------------------------------------------------
+    {
+      id: 'bed', title: 'Comparing schedules: BED and EQD2', minutes: 10, level: 'Advanced',
+      summary: 'How radiobiologists compare different fractionation schedules using the linear-quadratic model.',
+      goals: ['Explain why 60 Gy in 30 and 60 Gy in 10 are not equivalent', 'Calculate BED and EQD2', 'Convert between schedules'],
+      blocks: [
+        '<h3>Not all Grays are equal</h3><p>Delivering 60 Gy in <b>30 fractions</b> is very different from 60 Gy in <b>10 fractions</b>: the larger fractions do more biological damage, especially to tissues that repair well between fractions. To compare schedules we need a biological scale.</p>',
+        '<h3>The linear-quadratic model</h3><p>Each tissue has an <b>α/β ratio</b> (in Gy) that describes how sensitive it is to fraction size. Low α/β means <em>very</em> sensitive to large fractions.</p><ul><li><b>α/β ≈ 10 Gy:</b> most tumours and early-responding tissues.</li><li><b>α/β ≈ 3 Gy:</b> late-responding normal tissues (spinal cord, connective tissue).</li><li><b>α/β ≈ 1.5 Gy:</b> prostate cancer is commonly assumed to be this low.</li></ul>',
+        formula(`BED = n × d × (1 + ${fr('d', 'α/β')})`, 'n = number of fractions, d = dose per fraction in Gy. The result is in Gy with the α/β as a subscript, for example Gy₁₀'),
+        formula(`EQD2 = ${fr('BED', '1 + 2 ÷ (α/β)')}`, 'The total dose that, given in 2 Gy fractions, has the same biological effect'),
+        callout('example', 'Example', '55 Gy in 20 fractions (d = 2.75 Gy), tumour α/β = 10: BED = 55 × (1 + 2.75 ÷ 10) = <b>70.1 Gy₁₀</b>. EQD2 = 70.1 ÷ 1.2 = <b>58.4 Gy</b>. So this schedule is biologically like 58.4 Gy in 2 Gy fractions.'),
+        { widget: 'bed' },
+        '<h3>Switching schedules</h3><p>Suppose a schedule of 30 × 2 Gy is to be shortened to 20 fractions. What dose per fraction keeps the same biological effect on late-responding tissue (α/β = 3)? We make the BEDs equal and solve for the new dose per fraction.</p>',
+        { widget: 'regimen' },
+        callout('warn', 'Limits of the model', 'This is the simplest version of the model. It ignores tumour repopulation during long treatments and incomplete repair between fractions, and it is less reliable for very large fractions. Clinicians decide schedules using clinical trial evidence. BED is a tool for comparison, not a prescription.'),
+      ],
+      keyPoints: ['BED = n × d × (1 + d/(α/β)).', 'EQD2 = BED ÷ (1 + 2/(α/β)).', 'Larger fractions increase late-tissue BED faster than tumour BED.', 'Equal BED means equal biological effect for that tissue.'],
+      quiz: [
+        { q: 'What is the BED (α/β = 10) of 5 fractions of 5 Gy?', options: ['25 Gy₁₀', '37.5 Gy₁₀', '50 Gy₁₀', '62.5 Gy₁₀'], answer: 1, why: 'BED = 5 × 5 × (1 + 5 ÷ 10) = 25 × 1.5 = 37.5.' },
+        { q: 'EQD2 expresses a schedule as an equivalent total dose delivered in fractions of…', options: ['1 Gy', '2 Gy', '5 Gy', '10 Gy'], answer: 1, why: 'The "2" in EQD2 stands for 2 Gy per fraction.' },
+        { q: 'For the same total physical dose, increasing the dose per fraction raises BED for late-responding tissue (low α/β)…', options: ['Less than for tumours', 'The same as for tumours', 'More than for tumours', 'Not at all'], answer: 2, why: 'With a low α/β the fraction-size term d ÷ (α/β) is larger, so the BED rises more steeply.' },
+      ],
+    },
+    // -----------------------------------------------------------------------
+    {
+      id: 'decay', title: 'Radioactive decay and cobalt-60 timing', minutes: 9, level: 'Intermediate',
+      summary: 'How radioactive sources lose strength, and how to calculate beam-on time for a cobalt unit.',
+      goals: ['Apply the half-life rule', 'Use the decay formula', 'Calculate cobalt-60 treatment time'],
+      blocks: [
+        '<h3>Half-life</h3><p>Radioactive sources lose activity over time. The <b>half-life</b> is the time it takes for the activity to fall to <b>half</b>. After 2 half-lives a quarter remains; after 3, an eighth; and so on.</p>',
+        formula(`A = A₀ × (½)<sup>t ÷ T½</sup>      or equivalently      A = A₀ × e<sup>−λt</sup>,   λ = ${fr('0.693', 'T½')}`, 'A₀ = starting activity, t = time elapsed, T½ = half-life'),
+        '<p>Common clinical sources and where they are used:</p>',
+        `<table class="mini"><thead><tr><th>Source</th><th>Half-life</th><th>Used for</th></tr></thead><tbody>
+          <tr><td>Co-60</td><td>5.27 years</td><td>Teletherapy units</td></tr>
+          <tr><td>Cs-137</td><td>30.2 years</td><td>Older brachytherapy</td></tr>
+          <tr><td>Ir-192</td><td>73.8 days</td><td>HDR brachytherapy (source replaced every ~3 months)</td></tr>
+          <tr><td>I-125</td><td>59.4 days</td><td>Permanent prostate seeds</td></tr>
+          <tr><td>Pd-103</td><td>17.0 days</td><td>Permanent seeds</td></tr></tbody></table>`,
+        { widget: 'decay' },
+        '<h3>Cobalt-60 treatment time</h3><p>A cobalt machine has no monitor chamber calibrated in MU. Instead the physicist measures the <b>dose rate</b> (cGy per minute), and the therapist sets a <b>time</b>:</p>',
+        formula(`Time = ${fr('Prescribed dose', 'Dose rate today')}      with      Dose rate today = Dose rate on reference date × (½)<sup>t ÷ 5.27 years</sup>`),
+        callout('tip', 'Why monthly?', 'Co-60 loses about <b>1.1 % of its output per month</b>. So the beam-on time for the same dose creeps up each month, and cobalt units need regular recalculation (and eventually a source change).'),
+        { widget: 'co60' },
+      ],
+      keyPoints: ['After each half-life, half the activity remains.', 'A = A₀ × (½)^(t/T½).', 'Cobalt time = dose ÷ dose rate, and the dose rate falls about 1.1 % per month.'],
+      quiz: [
+        { q: 'After 3 half-lives, what fraction of the original activity remains?', options: ['1/2', '1/4', '1/8', '1/16'], answer: 2, why: '(½)³ = 1/8 = 12.5 %.' },
+        { q: 'A 10 Ci Ir-192 source (half-life ≈ 74 days) is used for 148 days. How much activity is left?', options: ['5 Ci', '2.5 Ci', '1.25 Ci', '0 Ci'], answer: 1, why: '148 days is 2 half-lives. 10 × (½)² = 2.5 Ci.' },
+        { q: 'As a cobalt-60 source decays, the treatment time needed for the same dose…', options: ['Decreases', 'Stays the same', 'Increases', 'Becomes zero'], answer: 2, why: 'Dose rate falls, and time = dose ÷ dose rate, so time rises.' },
+      ],
+    },
+  ];
+
+  DE.lessons = lessons;
+})();
+
+</script>
+  <script>
+/* DoseCalc EDU - practice problem generators and the Practice page.
+ * Every problem states the numbers it needs, so no look-up tables are required. */
+(function () {
+  'use strict';
+  const DE = window.DoseEdu;
+  const C = window.DoseCalc;
+  const { h, store, notice } = DE;
+  const { fmt, fix } = C;
+
+  const rnd = (a, b, step) => {
+    step = step || 1;
+    return Number((a + step * Math.floor(Math.random() * Math.round((b - a) / step + 1))).toFixed(6));
+  };
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const step = (t, c) => ({ t, c });
+
+  // ---------------------------------------------------------------------------
+  // Problem generators. Each returns { q, unit, answer, dp, hint, steps }
+  // ---------------------------------------------------------------------------
+  const topics = [
+    {
+      id: 'frac', title: 'Fractionation & units',
+      gen(level) {
+        if (level === 1) {
+          const d = pick([1.8, 2, 2, 2.5, 3, 4]);
+          const n = pick([5, 10, 15, 20, 25, 30]);
+          const T = d * n;
+          return { q: `A patient is prescribed <b>${fmt(d)} Gy per fraction</b> for <b>${n} fractions</b>. What is the total dose in <b>Gy</b>?`, unit: 'Gy', answer: T, dp: 2,
+            hint: 'Total dose = dose per fraction × number of fractions.',
+            steps: [step('Multiply dose per fraction by the number of fractions', `${fmt(d)} × ${n} = ${fmt(T, 2)} Gy`)] };
+        }
+        if (level === 2) {
+          const n = pick([5, 10, 15, 20, 25, 30]);
+          const d = pick([2, 2.5, 3, 4, 5, 6]);
+          const T = d * n;
+          if (Math.random() < 0.5) {
+            return { q: `The total dose is <b>${fmt(T)} Gy</b> given in <b>${n} fractions</b>. What is the dose per fraction in <b>cGy</b>?`, unit: 'cGy', answer: d * 100, dp: 1,
+              hint: 'Divide the total by the number of fractions, then multiply by 100 to convert Gy to cGy.',
+              steps: [step('Dose per fraction in Gy', `${fmt(T)} ÷ ${n} = ${fmt(d, 2)} Gy`), step('Convert to cGy (1 Gy = 100 cGy)', `${fmt(d, 2)} × 100 = ${fmt(d * 100)} cGy`)] };
+          }
+          return { q: `A course delivers <b>${fmt(T)} Gy</b> in fractions of <b>${fmt(d)} Gy</b>. How many <b>fractions</b> is that?`, unit: 'fractions', answer: n, dp: 0,
+            hint: 'Number of fractions = total dose ÷ dose per fraction.',
+            steps: [step('Divide total by dose per fraction', `${fmt(T)} ÷ ${fmt(d)} = ${n}`)] };
+        }
+        const n1 = pick([25, 28, 30]);
+        const d1 = 2;
+        const n2 = pick([3, 5, 8, 10]);
+        const d2 = pick([2, 2.5, 3]);
+        const total = n1 * d1 + n2 * d2;
+        return { q: `Phase 1: <b>${n1} fractions of ${d1} Gy</b>. Then a boost: <b>${n2} fractions of ${fmt(d2)} Gy</b>. What is the total dose in <b>cGy</b>?`, unit: 'cGy', answer: total * 100, dp: 0,
+          hint: 'Work out each phase separately, add them, then convert to cGy.',
+          steps: [step('Phase 1', `${n1} × ${d1} = ${n1 * d1} Gy`), step('Boost', `${n2} × ${fmt(d2)} = ${fmt(n2 * d2)} Gy`), step('Add', `${n1 * d1} + ${fmt(n2 * d2)} = ${fmt(total)} Gy`), step('Convert to cGy', `${fmt(total)} × 100 = ${fmt(total * 100)} cGy`)] };
+      },
+    },
+    {
+      id: 'pdd', title: 'Percent depth dose',
+      gen(level) {
+        const p = rnd(55, 92, 1);
+        if (level === 1) {
+          const dm = pick([200, 250, 300, 400]);
+          const a = (dm * p) / 100;
+          return { q: `The dose at dmax is <b>${dm} cGy</b> and the PDD at the point of interest is <b>${p} %</b>. What is the dose at that point?`, unit: 'cGy', answer: a, dp: 1,
+            hint: 'Dose at depth = dose at dmax × PDD ÷ 100.',
+            steps: [step('Convert the percentage', `${p} % = ${fix(p / 100, 2)}`), step('Multiply', `${dm} × ${fix(p / 100, 2)} = ${fmt(a, 1)} cGy`)] };
+        }
+        if (level === 2) {
+          const rx = pick([180, 200, 250, 300]);
+          const a = rx / (p / 100);
+          return { q: `A single beam must deliver <b>${rx} cGy</b> at a depth where the PDD is <b>${p} %</b>. What dose is delivered at <b>dmax</b>?`, unit: 'cGy', answer: a, dp: 1,
+            hint: 'Dose at dmax = dose at depth ÷ (PDD ÷ 100).',
+            steps: [step('Convert the percentage', `${p} % = ${fix(p / 100, 2)}`), step('Divide the prescription', `${rx} ÷ ${fix(p / 100, 2)} = ${fmt(a, 1)} cGy`)] };
+        }
+        const pp = pick([60, 62.5, 65, 70, 75, 80]);
+        const pct = (100 / pp - 1) * 100;
+        return { q: `For a single beam the PDD at the prescription depth is <b>${fmt(pp)} %</b>. By what percentage is the dose at <b>dmax higher</b> than the prescription dose?`, unit: '%', answer: pct, dp: 1,
+          hint: 'Dose at dmax ÷ prescription = 100 ÷ PDD. Then subtract 1 and express as a percentage.',
+          steps: [step('Dose at dmax relative to prescription', `100 ÷ ${fmt(pp)} = ${fix(100 / pp, 3)}`), step('Excess over the prescription', `(${fix(100 / pp, 3)} − 1) × 100 = ${fmt(pct, 1)} %`)] };
+      },
+    },
+    {
+      id: 'isq', title: 'Inverse-square law',
+      gen(level) {
+        let r1; let d1; let d2;
+        if (level === 1) { r1 = pick([100, 200, 400]); d1 = 100; d2 = pick([50, 200, 300]); }
+        else if (level === 2) { r1 = rnd(80, 300, 10); d1 = pick([80, 100]); d2 = rnd(60, 160, 10); if (d2 === d1) d2 += 20; }
+        if (level === 3) {
+          r1 = rnd(100, 300, 10); d1 = 100; const r2 = Math.round(r1 * pick([0.25, 0.36, 0.64, 0.81]) * 10) / 10;
+          const ans = d1 * Math.sqrt(r1 / r2);
+          return { q: `The dose rate is <b>${fmt(r1)} cGy/min</b> at <b>100 cm</b>. At what distance (cm) is the dose rate <b>${fmt(r2, 1)} cGy/min</b>?`, unit: 'cm', answer: ans, dp: 1,
+            hint: 'Rearrange: d₂ = d₁ × √(rate₁ ÷ rate₂).',
+            steps: [step('Rearrange the inverse-square law', 'rate₂ = rate₁ × (d₁ ÷ d₂)²   →   d₂ = d₁ × √(rate₁ ÷ rate₂)'), step('Substitute', `d₂ = 100 × √(${fmt(r1)} ÷ ${fmt(r2, 1)}) = 100 × √${fix(r1 / r2, 4)}`), step('Evaluate', `d₂ = ${fmt(ans, 1)} cm`)] };
+        }
+        const f = (d1 / d2) ** 2;
+        return { q: `The dose rate is <b>${fmt(r1)} cGy/min</b> at <b>${d1} cm</b> from the source. What is the dose rate at <b>${d2} cm</b>?`, unit: 'cGy/min', answer: r1 * f, dp: 1,
+          hint: 'New rate = old rate × (old distance ÷ new distance)².',
+          steps: [step('Distance ratio', `${d1} ÷ ${d2} = ${fix(d1 / d2, 4)}`), step('Square it', `${fix(d1 / d2, 4)}² = ${fix(f, 4)}`), step('Apply to the dose rate', `${fmt(r1)} × ${fix(f, 4)} = ${fmt(r1 * f, 1)} cGy/min`)] };
+      },
+    },
+    {
+      id: 'eqsq', title: 'Equivalent square',
+      gen(level) {
+        if (level === 3) {
+          const w = pick([6, 8, 10, 12]);
+          const es = w + pick([1, 2, 3]);
+          const l = (es * w) / (2 * w - es);
+          return { q: `A field has an equivalent square of <b>${es} cm</b> and a width of <b>${w} cm</b>. What is its <b>length</b>?`, unit: 'cm', answer: l, dp: 2,
+            hint: 'Start from ES = 2wl ÷ (w + l) and solve for l.',
+            steps: [step('Start from the formula', `ES = 2 × w × l ÷ (w + l)`), step('Solve for l', `l = ES × w ÷ (2w − ES)`), step('Substitute', `l = ${es} × ${w} ÷ (2 × ${w} − ${es}) = ${es * w} ÷ ${2 * w - es} = ${fmt(l, 2)} cm`)] };
+        }
+        const w = level === 1 ? pick([4, 5, 6, 8, 10]) : rnd(5, 18, 0.5);
+        const l = level === 1 ? w * pick([2, 3]) : rnd(8, 30, 0.5);
+        const es = (4 * w * l) / (2 * (w + l));
+        return { q: `What is the equivalent square (in cm) of a <b>${fmt(w)} × ${fmt(l)} cm</b> field?`, unit: 'cm', answer: es, dp: 2,
+          hint: 'Equivalent square = 4 × area ÷ perimeter.',
+          steps: [step('Area', `${fmt(w)} × ${fmt(l)} = ${fmt(w * l, 2)} cm²`), step('Perimeter', `2 × (${fmt(w)} + ${fmt(l)}) = ${fmt(2 * (w + l), 2)} cm`), step('4 × Area ÷ Perimeter', `4 × ${fmt(w * l, 2)} ÷ ${fmt(2 * (w + l), 2)} = ${fmt(es, 2)} cm`)] };
+      },
+    },
+    {
+      id: 'mayneord', title: 'Mayneord F factor',
+      gen(level) {
+        const dmax = level === 3 ? pick([2.5, 3.0]) : 1.5;
+        const f1 = level === 3 ? pick([80, 100, 90]) : pick([80, 90]);
+        const f2 = level === 3 ? pick([110, 120, 130]) : 100;
+        const d = pick([5, 8, 10, 12, 15]);
+        const p1 = rnd(50, 80, 1);
+        const a = (f2 + dmax) / (f2 + d);
+        const b = (f1 + d) / (f1 + dmax);
+        const F = a * a * b * b;
+        const ans = p1 * F;
+        return { q: `The PDD at <b>${d} cm</b> depth measured at <b>SSD ${f1} cm</b> is <b>${p1} %</b> (dmax = ${fmt(dmax)} cm). Use the Mayneord F factor to find the PDD at <b>SSD ${f2} cm</b>.`, unit: '%', answer: ans, dp: 1,
+          hint: 'F = ((f₂ + dmax) ÷ (f₂ + d))² × ((f₁ + d) ÷ (f₁ + dmax))². Then PDD₂ = PDD₁ × F.',
+          steps: [
+            step('New-SSD part', `((${f2} + ${fmt(dmax)}) ÷ (${f2} + ${d}))² = (${fix(a, 4)})² = ${fix(a * a, 4)}`),
+            step('Old-SSD part', `((${f1} + ${d}) ÷ (${f1} + ${fmt(dmax)}))² = (${fix(b, 4)})² = ${fix(b * b, 4)}`),
+            step('Multiply for F', `${fix(a * a, 4)} × ${fix(b * b, 4)} = ${fix(F, 4)}`),
+            step('Correct the PDD', `${p1} × ${fix(F, 4)} = ${fmt(ans, 1)} %`)] };
+      },
+    },
+    {
+      id: 'musad', title: 'Monitor units (SAD)',
+      gen(level) {
+        const dose = pick([180, 200, 250, 300]);
+        const tmr = rnd(0.55, 0.92, 0.01);
+        const K = 1;
+        if (level === 1) {
+          const mu = dose / (K * tmr);
+          return { q: `Isocentric technique. The prescription is <b>${dose} cGy</b>. K = 1.000 cGy/MU, Sc = Sp = 1.000, and the TMR is <b>${fix(tmr, 2)}</b>. How many MU?`, unit: 'MU', answer: mu, dp: 1,
+            hint: 'MU = dose ÷ (K × Sc × Sp × TMR). Here K, Sc and Sp are all 1.',
+            steps: [step('Dose per MU', `1 × 1 × 1 × ${fix(tmr, 2)} = ${fix(tmr, 2)} cGy/MU`), step('MU = dose ÷ dose per MU', `${dose} ÷ ${fix(tmr, 2)} = ${fmt(mu, 1)} MU`)] };
+        }
+        const sc = rnd(0.97, 1.04, 0.005);
+        const sp = rnd(0.97, 1.04, 0.005);
+        if (level === 2) {
+          const per = K * sc * sp * tmr;
+          const mu = dose / per;
+          return { q: `Isocentric technique. Prescription <b>${dose} cGy</b>. K = 1.000, Sc = <b>${fix(sc, 3)}</b>, Sp = <b>${fix(sp, 3)}</b>, TMR = <b>${fix(tmr, 2)}</b>. How many MU?`, unit: 'MU', answer: mu, dp: 1,
+            hint: 'Multiply K, Sc, Sp and TMR to get the dose per MU, then divide the prescription by it.',
+            steps: [step('Dose per MU', `1.000 × ${fix(sc, 3)} × ${fix(sp, 3)} × ${fix(tmr, 2)} = ${fix(per, 4)} cGy/MU`), step('MU', `${dose} ÷ ${fix(per, 4)} = ${fmt(mu, 1)} MU`)] };
+        }
+        const wf = pick([0.93, 0.8, 0.68, 0.55]);
+        const tf = 0.97;
+        const per = K * sc * sp * tmr * wf * tf;
+        const mu = dose / per;
+        return { q: `Isocentric technique with a wedge and tray. Prescription <b>${dose} cGy</b>. K = 1.000, Sc = <b>${fix(sc, 3)}</b>, Sp = <b>${fix(sp, 3)}</b>, TMR = <b>${fix(tmr, 2)}</b>, wedge factor <b>${fix(wf, 2)}</b>, tray factor <b>0.97</b>. How many MU?`, unit: 'MU', answer: mu, dp: 1,
+          hint: 'Include every factor: K × Sc × Sp × TMR × WF × TF.',
+          steps: [step('Dose per MU', `1.000 × ${fix(sc, 3)} × ${fix(sp, 3)} × ${fix(tmr, 2)} × ${fix(wf, 2)} × 0.97 = ${fix(per, 4)} cGy/MU`), step('MU', `${dose} ÷ ${fix(per, 4)} = ${fmt(mu, 1)} MU`)] };
+      },
+    },
+    {
+      id: 'mussd', title: 'Monitor units (SSD)',
+      gen(level) {
+        const dose = pick([180, 200, 250, 300]);
+        const pddv = rnd(58, 90, 1);
+        if (level === 1) {
+          const mu = dose / (pddv / 100);
+          return { q: `Fixed-SSD technique. Prescription <b>${dose} cGy</b>. K = 1.000 cGy/MU, Sc = Sp = 1.000, ISF = 1.000, and the PDD is <b>${pddv} %</b>. How many MU?`, unit: 'MU', answer: mu, dp: 1,
+            hint: 'MU = dose ÷ (K × Sc × Sp × PDD/100 × ISF). Only PDD differs from 1 here.',
+            steps: [step('Dose per MU', `1 × 1 × 1 × ${fix(pddv / 100, 2)} × 1 = ${fix(pddv / 100, 2)} cGy/MU`), step('MU', `${dose} ÷ ${fix(pddv / 100, 2)} = ${fmt(mu, 1)} MU`)] };
+        }
+        const sc = rnd(0.97, 1.04, 0.005);
+        const sp = rnd(0.97, 1.04, 0.005);
+        if (level === 2) {
+          const per = sc * sp * (pddv / 100);
+          const mu = dose / per;
+          return { q: `Fixed-SSD technique. Prescription <b>${dose} cGy</b>. K = 1.000, Sc = <b>${fix(sc, 3)}</b>, Sp = <b>${fix(sp, 3)}</b>, PDD = <b>${pddv} %</b>, ISF = 1.000. How many MU?`, unit: 'MU', answer: mu, dp: 1,
+            hint: 'Dose per MU = K × Sc × Sp × PDD/100. Then MU = dose ÷ that.',
+            steps: [step('Dose per MU', `1.000 × ${fix(sc, 3)} × ${fix(sp, 3)} × ${fix(pddv / 100, 2)} = ${fix(per, 4)} cGy/MU`), step('MU', `${dose} ÷ ${fix(per, 4)} = ${fmt(mu, 1)} MU`)] };
+        }
+        const ssd = pick([90, 95, 100, 105, 110]);
+        const isf = (100 / (ssd + 1.5)) ** 2;
+        const tf = 0.97;
+        const per = sc * sp * (pddv / 100) * isf * tf;
+        const mu = dose / per;
+        return { q: `Fixed-SSD technique. Prescription <b>${dose} cGy</b>. The machine is calibrated to 1.000 cGy/MU with the dmax point <b>100 cm</b> from the source; dmax = 1.5 cm. Treatment SSD = <b>${ssd} cm</b>. Sc = <b>${fix(sc, 3)}</b>, Sp = <b>${fix(sp, 3)}</b>, PDD = <b>${pddv} %</b>, tray factor <b>0.97</b>. How many MU?`, unit: 'MU', answer: mu, dp: 1,
+          hint: 'First find the inverse-square factor: ISF = (100 ÷ (SSD + dmax))². Then multiply every factor.',
+          steps: [step('Source-to-dmax distance', `${ssd} + 1.5 = ${fmt(ssd + 1.5, 1)} cm`), step('Inverse-square factor', `(100 ÷ ${fmt(ssd + 1.5, 1)})² = ${fix(isf, 4)}`), step('Dose per MU', `${fix(sc, 3)} × ${fix(sp, 3)} × ${fix(pddv / 100, 2)} × ${fix(isf, 4)} × 0.97 = ${fix(per, 4)} cGy/MU`), step('MU', `${dose} ÷ ${fix(per, 4)} = ${fmt(mu, 1)} MU`)] };
+      },
+    },
+    {
+      id: 'bed', title: 'BED & EQD2',
+      gen(level) {
+        if (level === 1) {
+          const n = pick([5, 10, 15, 20]);
+          const d = pick([2, 2.5, 3, 4, 5]);
+          const b = C.bed(n, d, 10);
+          return { q: `What is the <b>BED</b> (Gy₁₀, α/β = 10 Gy) of <b>${n} fractions of ${fmt(d)} Gy</b>?`, unit: 'Gy', answer: b, dp: 2,
+            hint: 'BED = n × d × (1 + d ÷ (α/β)).',
+            steps: [step('Total dose', `${n} × ${fmt(d)} = ${fmt(n * d)} Gy`), step('Fraction-size factor', `1 + ${fmt(d)} ÷ 10 = ${fix(1 + d / 10, 3)}`), step('BED', `${fmt(n * d)} × ${fix(1 + d / 10, 3)} = ${fmt(b, 2)} Gy₁₀`)] };
+        }
+        if (level === 2) {
+          const n = pick([15, 20, 25]);
+          const d = pick([2.5, 2.75, 3, 3.5]);
+          const ab = pick([3, 10]);
+          const b = C.bed(n, d, ab);
+          const e = C.eqd2(n, d, ab);
+          return { q: `What is the <b>EQD2</b> of <b>${n} fractions of ${fmt(d)} Gy</b> for a tissue with <b>α/β = ${ab} Gy</b>?`, unit: 'Gy', answer: e, dp: 2,
+            hint: 'First BED = n × d × (1 + d/(α/β)). Then EQD2 = BED ÷ (1 + 2/(α/β)).',
+            steps: [step('BED', `${n} × ${fmt(d)} × (1 + ${fmt(d)} ÷ ${ab}) = ${fmt(b, 3)} Gy`), step('Divisor for 2 Gy fractions', `1 + 2 ÷ ${ab} = ${fix(1 + 2 / ab, 4)}`), step('EQD2', `${fmt(b, 3)} ÷ ${fix(1 + 2 / ab, 4)} = ${fmt(e, 2)} Gy`)] };
+        }
+        const n1 = pick([25, 30, 33]);
+        const d1 = 2;
+        const n2 = pick([15, 20]);
+        const ab = 3;
+        const b = C.bed(n1, d1, ab);
+        const d2 = C.equivalentDosePerFraction(b, n2, ab);
+        return { q: `A schedule of <b>${n1} × ${d1} Gy</b> is to be replaced by <b>${n2} fractions</b> with the same BED for late-responding tissue (<b>α/β = 3 Gy</b>). What dose per fraction (Gy) is needed?`, unit: 'Gy', answer: d2, dp: 3,
+          hint: 'Find BED of the first schedule. Then solve n₂ × d₂ × (1 + d₂/3) = BED: d₂ = (−3 + √(9 + 12 × BED ÷ n₂)) ÷ 2.',
+          steps: [step('BED of the original schedule', `${n1} × ${d1} × (1 + ${d1} ÷ 3) = ${fmt(b, 3)} Gy₃`), step('Quadratic for d₂', `d₂² + 3 × d₂ − 3 × ${fmt(b, 3)} ÷ ${n2} = 0`), step('Solve', `d₂ = (−3 + √(9 + 12 × ${fmt(b, 3)} ÷ ${n2})) ÷ 2 = ${fmt(d2, 3)} Gy`)] };
+      },
+    },
+    {
+      id: 'decay', title: 'Radioactive decay',
+      gen(level) {
+        if (level === 1) {
+          const nh = pick([1, 2, 3]);
+          const hl = pick([60, 74, 30]);
+          const a0 = pick([8, 10, 16, 20, 40]);
+          const a = a0 * 0.5 ** nh;
+          return { q: `A source has a half-life of <b>${hl} days</b> and an activity of <b>${a0} Ci</b>. What is its activity after <b>${hl * nh} days</b>?`, unit: 'Ci', answer: a, dp: 3,
+            hint: 'Count how many half-lives have passed, then halve the activity that many times.',
+            steps: [step('Half-lives elapsed', `${hl * nh} ÷ ${hl} = ${nh}`), step('Fraction remaining', `(½)^${nh} = ${fmt(0.5 ** nh, 4)}`), step('Activity', `${a0} × ${fmt(0.5 ** nh, 4)} = ${fmt(a, 3)} Ci`)] };
+        }
+        if (level === 2) {
+          const iso = pick(['Ir-192', 'I-125', 'Pd-103']);
+          const hl = C.ISOTOPES[iso].halfLifeDays;
+          const t = pick([10, 20, 30, 45, 60, 90]);
+          const a0 = pick([10, 12, 20, 50]);
+          const n = t / hl;
+          const a = a0 * 0.5 ** n;
+          return { q: `${iso} has a half-life of <b>${fmt(hl, 2)} days</b>. A source starts at <b>${a0} units</b>. What is the activity after <b>${t} days</b>?`, unit: 'units', answer: a, dp: 3,
+            hint: 'Activity = starting activity × (½)^(time ÷ half-life).',
+            steps: [step('Half-lives elapsed', `${t} ÷ ${fmt(hl, 2)} = ${fmt(n, 4)}`), step('Fraction remaining', `0.5 ^ ${fmt(n, 4)} = ${fmt(0.5 ** n, 4)}`), step('Activity', `${a0} × ${fmt(0.5 ** n, 4)} = ${fmt(a, 3)}`)] };
+        }
+        const hl = pick([60, 74]);
+        const pct = pick([10, 20, 25, 40]);
+        const t = hl * Math.log2(100 / pct);
+        return { q: `A source has a half-life of <b>${hl} days</b>. After how many <b>days</b> will only <b>${pct} %</b> of its activity remain?`, unit: 'days', answer: t, dp: 1,
+          hint: 'Solve (½)^n = fraction for n using logarithms: n = log₂(1 ÷ fraction). Then multiply by the half-life.',
+          steps: [step('Fraction remaining', `${pct} % = ${fmt(pct / 100, 3)}`), step('Half-lives needed', `n = log₂(1 ÷ ${fmt(pct / 100, 3)}) = ln(${fmt(100 / pct, 3)}) ÷ ln 2 = ${fmt(Math.log2(100 / pct), 4)}`), step('Convert to days', `${fmt(Math.log2(100 / pct), 4)} × ${hl} = ${fmt(t, 1)} days`)] };
+      },
+    },
+    {
+      id: 'co60', title: 'Cobalt-60 time',
+      gen(level) {
+        if (level === 1) {
+          const rate = pick([80, 100, 120, 150, 200]);
+          const dose = pick([180, 200, 250, 300]);
+          const t = dose / rate;
+          return { q: `A cobalt unit delivers <b>${rate} cGy/min</b> at the prescription point. How many <b>minutes</b> are needed to deliver <b>${dose} cGy</b>?`, unit: 'min', answer: t, dp: 2,
+            hint: 'Time = dose ÷ dose rate.',
+            steps: [step('Divide dose by dose rate', `${dose} ÷ ${rate} = ${fmt(t, 3)} min`)] };
+        }
+        const rate0 = pick([100, 120, 150, 180]);
+        const months = level === 2 ? pick([12, 24, 36]) : pick([7, 18, 30, 45]);
+        const dose = pick([180, 200, 250]);
+        const frac = 0.5 ** (months / 12 / C.CO60_HALF_LIFE_YEARS);
+        const rate = rate0 * frac;
+        const t = dose / rate;
+        return { q: `A Co-60 source gave <b>${rate0} cGy/min</b> at the prescription point when installed. <b>${months} months</b> later (half-life 5.27 years), how many <b>minutes</b> are needed for <b>${dose} cGy</b>?`, unit: 'min', answer: t, dp: 2,
+          hint: 'Find the dose rate today with the half-life rule, then time = dose ÷ rate.',
+          steps: [step('Years elapsed', `${months} ÷ 12 = ${fmt(months / 12, 4)} years`), step('Fraction remaining', `0.5 ^ (${fmt(months / 12, 4)} ÷ 5.27) = ${fix(frac, 4)}`), step('Dose rate today', `${rate0} × ${fix(frac, 4)} = ${fmt(rate, 2)} cGy/min`), step('Time', `${dose} ÷ ${fmt(rate, 2)} = ${fmt(t, 3)} min`)] };
+      },
+    },
+  ];
+
+  const LEVELS = ['Beginner', 'Intermediate', 'Challenge'];
+
+  // ---------------------------------------------------------------------------
+  // Answer checking
+  // ---------------------------------------------------------------------------
+  function parseAnswer(text) {
+    if (typeof text !== 'string') return NaN;
+    const t = text.trim().replace(',', '.');
+    if (!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(t)) return NaN;
+    return parseFloat(t);
+  }
+  function isCorrect(given, answer) {
+    return Math.abs(given - answer) <= Math.max(Math.abs(answer) * 0.01, 0.005);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Page
+  // ---------------------------------------------------------------------------
+  function mountPractice(root) {
+    const saved = store.get('practice', {});
+    const state = { topic: 'mixed', level: 1, problem: null, topicOfProblem: null, solved: false, streak: 0 };
+    const stats = saved.stats || {};
+    const save = () => store.set('practice', { stats, best: saved.best || 0 });
+
+    const topicRow = h('div', { class: 'pills', role: 'group', 'aria-label': 'Topic' });
+    const levelRow = h('div', { class: 'seg', role: 'group', 'aria-label': 'Difficulty' });
+    const card = h('div', { class: 'card problem' });
+    const scoreEl = h('div', { class: 'scoreboard' });
+
+    function totals() {
+      const all = Object.values(stats);
+      return { right: all.reduce((a, b) => a + b.right, 0), total: all.reduce((a, b) => a + b.total, 0) };
+    }
+    function renderScore() {
+      const t = totals();
+      scoreEl.replaceChildren(
+        h('div', { class: 'score-item' }, h('b', null, String(state.streak)), h('span', null, 'streak')),
+        h('div', { class: 'score-item' }, h('b', null, String(saved.best || 0)), h('span', null, 'best streak')),
+        h('div', { class: 'score-item' }, h('b', null, `${t.right}/${t.total}`), h('span', null, 'correct overall')),
+        h('div', { class: 'score-item' }, h('b', null, t.total ? `${Math.round((t.right / t.total) * 100)}%` : '–'), h('span', null, 'accuracy')));
+    }
+    function renderPills() {
+      const items = [{ id: 'mixed', title: 'Mixed' }].concat(topics);
+      topicRow.replaceChildren(...items.map((t) => {
+        const st = stats[t.id];
+        return h('button', { type: 'button', class: 'pill' + (state.topic === t.id ? ' active' : ''), 'aria-pressed': String(state.topic === t.id),
+          onclick: () => { state.topic = t.id; renderPills(); next(); } },
+        t.title, st && st.total ? h('small', null, ` ${st.right}/${st.total}`) : null);
+      }));
+      levelRow.replaceChildren(...LEVELS.map((l, i) => h('button', { type: 'button', class: 'seg-btn' + (state.level === i + 1 ? ' active' : ''), 'aria-pressed': String(state.level === i + 1),
+        onclick: () => { state.level = i + 1; renderPills(); next(); } }, l)));
+    }
+
+    function next() {
+      const pool = state.topic === 'mixed' ? topics : topics.filter((t) => t.id === state.topic);
+      const topic = pick(pool);
+      state.topicOfProblem = topic;
+      state.problem = topic.gen(state.level);
+      state.solved = false;
+      state.tries = 0;
+      renderProblem();
+    }
+
+    function record(ok) {
+      const id = state.topicOfProblem.id;
+      stats[id] = stats[id] || { right: 0, total: 0 };
+      stats[id].total += 1;
+      if (ok) stats[id].right += 1;
+      if (ok) { state.streak += 1; saved.best = Math.max(saved.best || 0, state.streak); } else state.streak = 0;
+      save();
+      renderScore();
+      renderPills();
+    }
+
+    function renderProblem() {
+      const p = state.problem;
+      const feedback = h('div', { class: 'feedback', 'aria-live': 'polite' });
+      const solutionBox = h('div', { class: 'solution-box' });
+      const input = h('input', { type: 'text', inputmode: 'decimal', id: 'answer', autocomplete: 'off', placeholder: 'Your answer', 'aria-label': `Your answer in ${p.unit}` });
+      const checkBtn = h('button', { type: 'submit', class: 'btn primary' }, 'Check answer');
+      const hintBtn = h('button', { type: 'button', class: 'btn' }, 'Hint');
+      const showBtn = h('button', { type: 'button', class: 'btn' }, 'Show solution');
+      const nextBtn = h('button', { type: 'button', class: 'btn', onclick: next }, 'Next problem →');
+
+      function showSolution() {
+        solutionBox.replaceChildren(
+          h('h4', null, 'Step-by-step solution'),
+          h('ol', { class: 'steps' }, p.steps.map((s) => h('li', null, h('div', { class: 'step-title' }, s.t), h('div', { class: 'step-work' }, s.c)))),
+          h('p', { class: 'step-result' }, `Answer: ${fmt(p.answer, p.dp)} ${p.unit}`));
+      }
+      hintBtn.addEventListener('click', () => {
+        feedback.className = 'feedback hint';
+        feedback.replaceChildren(h('b', null, 'Hint: '), p.hint);
+      });
+      showBtn.addEventListener('click', () => {
+        if (!state.solved) { state.solved = true; record(false); }
+        showSolution();
+        feedback.className = 'feedback no';
+        feedback.replaceChildren('Solution shown. This one counts as missed. Try the next one!');
+        input.disabled = true;
+        checkBtn.disabled = true;
+      });
+      const form = h('form', { class: 'answer-row', onsubmit: (e) => {
+        e.preventDefault();
+        if (state.solved) return;
+        const v = parseAnswer(input.value);
+        if (!isFinite(v)) {
+          feedback.className = 'feedback no';
+          feedback.replaceChildren('Please type a number, for example 12.5');
+          return;
+        }
+        if (isCorrect(v, p.answer)) {
+          state.solved = true;
+          record(state.tries === 0);
+          feedback.className = 'feedback ok';
+          feedback.replaceChildren(h('b', null, 'Correct! '), `${fmt(p.answer, p.dp)} ${p.unit}.` + (state.tries ? ' (Not counted as first-try.)' : ''));
+          showSolution();
+          input.disabled = true;
+          checkBtn.disabled = true;
+          nextBtn.classList.add('primary');
+          nextBtn.focus();
+        } else {
+          state.tries += 1;
+          if (state.tries === 1) { record(false); }
+          feedback.className = 'feedback no';
+          feedback.replaceChildren(h('b', null, 'Not quite. '), 'Check your units and rounding, then try again. Use the hint if you are stuck.');
+        }
+      } }, input, h('span', { class: 'unit-tag' }, p.unit), checkBtn);
+
+      card.replaceChildren(
+        h('div', { class: 'problem-meta' }, h('span', { class: 'tag' }, state.topicOfProblem.title), h('span', { class: 'tag soft' }, LEVELS[state.level - 1])),
+        h('p', { class: 'question', html: p.q }),
+        form,
+        h('div', { class: 'btn-row' }, hintBtn, showBtn, nextBtn),
+        feedback, solutionBox,
+        h('p', { class: 'muted small' }, 'Answers within 1 % are accepted, so small rounding differences are fine.'));
+      input.focus({ preventScroll: true });
+    }
+
+    root.append(
+      h('div', { class: 'practice-head' },
+        h('div', null, h('h2', null, 'Practice'), h('p', { class: 'muted' }, 'Unlimited randomised problems. Every question gives you all the numbers you need.')),
+        scoreEl),
+      h('div', { class: 'controls' }, h('div', null, h('div', { class: 'ctl-label' }, 'Topic'), topicRow), h('div', null, h('div', { class: 'ctl-label' }, 'Difficulty'), levelRow)),
+      card,
+      h('div', { class: 'right-aligned' }, h('button', { type: 'button', class: 'btn ghost small', onclick: () => {
+        if (window.confirm('Reset all practice statistics and lesson progress on this device?')) {
+          store.reset();
+          window.location.reload();
+        }
+      } }, 'Reset my progress')));
+    renderScore();
+    renderPills();
+    next();
+  }
+
+  DE.mountPractice = mountPractice;
+  DE.practiceTopics = topics;
+  DE.practiceInternals = { parseAnswer, isCorrect };
+})();
+
+</script>
+  <script>
+/* DoseCalc EDU - formula sheet and glossary */
+(function () {
+  'use strict';
+  const DE = window.DoseEdu;
+  const { h, fr } = DE;
+
+  const formulas = [
+    { name: 'Total dose', f: 'Total = d × n', says: 'Dose per fraction times number of fractions.', units: '1 Gy = 100 cGy' },
+    { name: 'Percent depth dose', f: `PDD = ${fr('D<sub>d</sub>', 'D<sub>max</sub>')} × 100 %`, says: 'Share of the maximum dose that reaches depth d (fixed SSD).' },
+    { name: 'Inverse-square law', f: `I₂ = I₁ × (${fr('d₁', 'd₂')})²`, says: 'Dose rate falls with the square of the distance from the source.' },
+    { name: 'Mayneord F factor', f: `F = (${fr('f₂ + d<sub>m</sub>', 'f₂ + d')})² × (${fr('f₁ + d', 'f₁ + d<sub>m</sub>')})²`, says: 'Multiply PDD at SSD f₁ by F to get PDD at SSD f₂.' },
+    { name: 'Equivalent square', f: `ES = ${fr('4 × A', 'P')} = ${fr('2 w l', 'w + l')}`, says: 'The square field that scatters like a rectangle w × l.' },
+    { name: 'Output factor', f: 'S<sub>c,p</sub> = S<sub>c</sub> × S<sub>p</sub>', says: 'Dose per MU relative to the 10 × 10 cm reference field.' },
+    { name: 'TMR', f: `TMR = ${fr('D<sub>d</sub>', 'D<sub>ref at dmax</sub>')}`, says: 'Same source distance for both points: measures tissue absorption only.' },
+    { name: 'Monitor units, SSD', f: `MU = ${fr('D', 'K × S<sub>c</sub> × S<sub>p</sub> × PDD/100 × ISF × WF × TF')}`, says: 'Prescribed dose divided by the dose per MU at the point.' },
+    { name: 'Monitor units, SAD', f: `MU = ${fr('D', 'K × S<sub>c</sub> × S<sub>p</sub> × TMR × WF × TF')}`, says: 'No inverse-square factor: the isocentre is always at the same distance.' },
+    { name: 'Inverse-square factor', f: `ISF = (${fr('calibration distance', 'SSD + d<sub>max</sub>')})²`, says: 'Distance correction from the calibration point to the dmax point.' },
+    { name: 'BED', f: `BED = n × d × (1 + ${fr('d', 'α/β')})`, says: 'Biological effect of a fractionated course (Gy with α/β subscript).' },
+    { name: 'EQD2', f: `EQD2 = ${fr('BED', '1 + 2/(α/β)')}`, says: 'Equivalent total dose in 2 Gy fractions.' },
+    { name: 'Radioactive decay', f: `A = A₀ × (½)<sup>t/T½</sup> = A₀ e<sup>−λt</sup>`, says: 'λ = 0.693 ÷ half-life.' },
+    { name: 'Cobalt-60 time', f: `t = ${fr('Dose', 'Dose rate today')}`, says: 'Dose rate today = reference rate × (½)^(t/5.27 y).' },
+  ];
+
+  const glossary = [
+    ['Absorbed dose', 'Energy absorbed per unit mass of tissue. Unit: gray (Gy).'],
+    ['Gray (Gy)', 'One joule of absorbed energy per kilogram. 1 Gy = 100 cGy.'],
+    ['Centigray (cGy)', 'One hundredth of a gray. The unit used in monitor-unit calculations.'],
+    ['Fraction', 'One treatment session.'],
+    ['Fractionation', 'Splitting the total dose into many fractions to spare normal tissue.'],
+    ['Hypofractionation', 'Fewer, larger fractions (more than about 2.5 Gy per fraction).'],
+    ['Prescription', 'The plan: dose, number of fractions, and the point or volume where the dose is specified.'],
+    ['Linear accelerator (linac)', 'The machine that generates high-energy x-rays (photons) or electrons for treatment.'],
+    ['Monitor unit (MU)', 'The linac\'s dose counter, calibrated so that a known dose is delivered per MU in reference conditions.'],
+    ['Calibration (K)', 'Dose per MU at the reference point, usually set to 1 cGy/MU.'],
+    ['Reference field', 'The 10 × 10 cm field in which output factors are defined as 1.000.'],
+    ['dmax', 'Depth of maximum dose. About 1.5 cm for a 6 MV photon beam.'],
+    ['Build-up region', 'The first centimetre or so where dose rises toward dmax. It spares the skin.'],
+    ['PDD', 'Percent depth dose: dose at depth as a percentage of the dose at dmax, for fixed SSD and field size.'],
+    ['SSD', 'Source-to-skin distance.'],
+    ['SAD', 'Source-to-axis distance. The fixed distance from the source to the isocentre (100 cm).'],
+    ['Isocentre', 'The point in space about which the gantry rotates. Placed inside the patient in SAD treatments.'],
+    ['TMR', 'Tissue-maximum ratio: dose at depth divided by dose at dmax at the same distance from the source.'],
+    ['Inverse-square law', 'Intensity from a point source is proportional to 1 divided by distance squared.'],
+    ['ISF', 'Inverse-square factor: the distance correction applied in an SSD calculation.'],
+    ['Mayneord F factor', 'Approximate correction to convert PDD from one SSD to another.'],
+    ['Equivalent square', 'The square field with the same scatter behaviour as a given rectangle: 4A/P.'],
+    ['Sc', 'Collimator scatter factor. Output change caused by the machine head as the field opens.'],
+    ['Sp', 'Phantom scatter factor. Output change caused by scatter within the patient as the field size grows.'],
+    ['Output factor', 'Dose per MU relative to the reference field: Sc × Sp.'],
+    ['Wedge factor (WF)', 'Fraction of the dose that remains with a wedge in the beam.'],
+    ['Tray factor (TF)', 'Fraction of the dose that remains with a blocking tray in the beam.'],
+    ['Central axis', 'The line from the source through the centre of the field.'],
+    ['BED', 'Biologically effective dose: a way to compare fractionation schedules.'],
+    ['EQD2', 'The total dose in 2 Gy fractions that has the same biological effect.'],
+    ['α/β ratio', 'A tissue property (in Gy) describing sensitivity to fraction size. Low values mean high sensitivity to large fractions.'],
+    ['Half-life', 'Time for a radioactive source\'s activity to fall by half.'],
+    ['Activity', 'Number of decays per second of a source. Unit: becquerel (Bq); older unit: curie (Ci).'],
+    ['Teletherapy', 'Treatment with a source at a distance from the patient, such as a linac or cobalt unit.'],
+    ['Brachytherapy', 'Treatment with sealed radioactive sources placed in or next to the tumour.'],
+  ];
+
+  function mountReference(root) {
+    const input = h('input', { type: 'search', placeholder: 'Search the glossary…', 'aria-label': 'Search the glossary' });
+    const list = h('dl', { class: 'glossary' });
+    function renderGlossary() {
+      const q = input.value.trim().toLowerCase();
+      const rows = glossary.filter(([t, d]) => !q || t.toLowerCase().includes(q) || d.toLowerCase().includes(q));
+      list.replaceChildren(...(rows.length ? rows.map(([t, d]) => h('div', null, h('dt', null, t), h('dd', null, d))) : [h('p', { class: 'muted' }, 'No matching terms.')]));
+    }
+    input.addEventListener('input', renderGlossary);
+    renderGlossary();
+
+    root.append(
+      h('h2', null, 'Formula sheet'),
+      h('p', { class: 'muted' }, 'Every formula used in the lessons, in one place.'),
+      h('div', { class: 'formula-grid' }, formulas.map((f) =>
+        h('div', { class: 'card fcard' },
+          h('div', { class: 'fname' }, f.name),
+          h('div', { class: 'formula small', html: f.f }),
+          h('p', { class: 'muted' }, f.says),
+          f.units ? h('p', { class: 'muted small' }, f.units) : null))),
+      h('h2', { class: 'spaced' }, 'Glossary'),
+      h('div', { class: 'search' }, input),
+      list);
+  }
+  DE.mountReference = mountReference;
+})();
+
+</script>
+  <script>
+/* DoseCalc EDU - app shell: hash router, pages, progress, theme */
+(function () {
+  'use strict';
+  const DE = window.DoseEdu;
+  const { h, store, notice, quizBlock } = DE;
+  const view = document.getElementById('view');
+
+  // ---------------------------------------------------------------------------
+  // Progress
+  // ---------------------------------------------------------------------------
+  const done = () => store.get('done', {});
+  function markDone(id, value) {
+    const d = done();
+    if (value === false) delete d[id]; else d[id] = true;
+    store.set('done', d);
+  }
+  const doneCount = () => DE.lessons.filter((l) => done()[l.id]).length;
+
+  // ---------------------------------------------------------------------------
+  // Theme
+  // ---------------------------------------------------------------------------
+  function applyTheme(theme) {
+    if (theme === 'light' || theme === 'dark') document.documentElement.setAttribute('data-theme', theme);
+    else document.documentElement.removeAttribute('data-theme');
+  }
+  function currentTheme() {
+    const t = document.documentElement.getAttribute('data-theme');
+    if (t) return t;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  applyTheme(store.get('theme', null));
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    store.set('theme', next);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+  const levelClass = (l) => 'lvl lvl-' + l.toLowerCase();
+  function ring(done, total) {
+    const pct = total ? done / total : 0;
+    const r = 26;
+    const c = 2 * Math.PI * r;
+    const svg = DE.s('svg', { viewBox: '0 0 64 64', class: 'ring', role: 'img', 'aria-label': `${done} of ${total} lessons complete` },
+      DE.s('circle', { class: 'ring-bg', cx: 32, cy: 32, r }),
+      DE.s('circle', { class: 'ring-fg', cx: 32, cy: 32, r, 'stroke-dasharray': `${(c * pct).toFixed(1)} ${c.toFixed(1)}`, transform: 'rotate(-90 32 32)' }),
+      DE.s('text', { x: 32, y: 37, 'text-anchor': 'middle', class: 'ring-text' }, `${done}/${total}`));
+    return svg;
+  }
+  const link = (href, cls, ...kids) => h('a', { href, class: cls }, ...kids);
+
+  function lessonCard(l, i) {
+    const isDone = !!done()[l.id];
+    return link(`#/learn/${l.id}`, 'card lesson-card' + (isDone ? ' complete' : ''),
+      h('div', { class: 'lc-num', 'aria-hidden': 'true' }, isDone ? '✓' : String(i + 1)),
+      h('div', { class: 'lc-body' },
+        h('div', { class: 'lc-title' }, l.title),
+        h('p', { class: 'muted' }, l.summary),
+        h('div', { class: 'lc-meta' }, h('span', { class: levelClass(l.level) }, l.level), h('span', { class: 'muted small' }, `${l.minutes} min`))));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pages
+  // ---------------------------------------------------------------------------
+  function pageHome() {
+    const total = DE.lessons.length;
+    const n = doneCount();
+    const first = DE.lessons.find((l) => !done()[l.id]) || DE.lessons[0];
+    return h('div', { class: 'home' },
+      h('section', { class: 'hero' },
+        h('div', { class: 'hero-text' },
+          h('p', { class: 'eyebrow' }, 'Radiation therapy physics, made clear'),
+          h('h1', null, 'Learn dose calculations, one step at a time.'),
+          h('p', { class: 'lead' }, 'From "what is a Gray?" to monitor units, TMR and biological dose. Every formula is explained in plain English, and every calculator shows its work.'),
+          h('div', { class: 'cta' },
+            link(`#/learn/${first.id}`, 'btn primary big', n ? 'Continue learning →' : 'Start with lesson 1 →'),
+            link('#/tools', 'btn big', 'Open the calculators'),
+            link('#/practice', 'btn big', 'Practise'))),
+        h('div', { class: 'hero-progress card' }, ring(n, total), h('div', null, h('b', null, 'Your progress'), h('p', { class: 'muted small' }, n === total ? 'All lessons complete. Well done!' : `${total - n} lesson${total - n === 1 ? '' : 's'} to go`)))),
+      h('section', { class: 'how' },
+        h('h2', null, 'How this works'),
+        h('div', { class: 'grid3' },
+          h('div', { class: 'card feature' }, h('div', { class: 'f-icon', 'aria-hidden': 'true' }, '1'), h('h3', null, 'Learn'), h('p', { class: 'muted' }, 'Short lessons build each idea from the one before. Interactive diagrams let you change the numbers and see what happens.')),
+          h('div', { class: 'card feature' }, h('div', { class: 'f-icon', 'aria-hidden': 'true' }, '2'), h('h3', null, 'See the working'), h('p', { class: 'muted' }, 'Calculators never just give an answer. Open "Show your work" to see each step with your numbers substituted in.')),
+          h('div', { class: 'card feature' }, h('div', { class: 'f-icon', 'aria-hidden': 'true' }, '3'), h('h3', null, 'Practise'), h('p', { class: 'muted' }, 'Unlimited randomised problems at three difficulty levels, with hints and full worked solutions.')))),
+      h('section', null,
+        h('h2', null, 'Your learning path'),
+        h('div', { class: 'path' }, DE.lessons.map(lessonCard))),
+      h('section', { class: 'disclaimer card' },
+        h('b', null, 'Educational use only. '),
+        'The beam data in this app is generic, rounded teaching data resembling a 6 MV photon beam. It is not measured data for any real machine. Never use this app to calculate treatment for a real patient. Clinical calculations must use commissioned machine data and validated, independently checked systems.'));
+  }
+
+  function pageLearnIndex() {
+    return h('div', null,
+      h('h2', null, 'Lessons'),
+      h('p', { class: 'muted' }, 'Work through them in order. Each ends with a short quiz.'),
+      h('div', { class: 'path' }, DE.lessons.map(lessonCard)));
+  }
+
+  function pageLesson(id) {
+    const i = DE.lessons.findIndex((l) => l.id === id);
+    if (i < 0) return notice('warn', 'Lesson not found.');
+    const l = DE.lessons[i];
+    const prev = DE.lessons[i - 1];
+    const nextL = DE.lessons[i + 1];
+    const completeBtn = h('button', { type: 'button', class: 'btn primary' });
+    function paintComplete() {
+      const isDone = !!done()[l.id];
+      completeBtn.textContent = isDone ? '✓ Completed (click to undo)' : 'Mark lesson complete';
+      completeBtn.classList.toggle('primary', !isDone);
+    }
+    completeBtn.addEventListener('click', () => { markDone(l.id, !done()[l.id]); paintComplete(); });
+    paintComplete();
+
+    const body = h('div', { class: 'prose lesson-body' });
+    let proseChunk = [];
+    const flush = () => { if (proseChunk.length) { body.append(h('div', { html: proseChunk.join('') })); proseChunk = []; } };
+    for (const b of l.blocks) {
+      if (typeof b === 'string') proseChunk.push(b);
+      else if (b.widget) {
+        flush();
+        const w = DE.widgets[b.widget];
+        const holder = h('section', { class: 'widget', 'aria-label': w ? w.title : 'Interactive' }, h('div', { class: 'widget-tag' }, w && w.group === 'Examples' ? 'Worked example' : 'Try it yourself'));
+        DE.mountWidget(b.widget, holder);
+        body.append(holder);
+      }
+    }
+    flush();
+
+    return h('article', { class: 'lesson' },
+      h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' }, link('#/learn', null, 'Lessons'), ' / ', `Lesson ${i + 1}`),
+      h('header', { class: 'lesson-head' },
+        h('div', { class: 'lc-meta' }, h('span', { class: levelClass(l.level) }, l.level), h('span', { class: 'muted small' }, `${l.minutes} min · Lesson ${i + 1} of ${DE.lessons.length}`)),
+        h('h1', null, l.title),
+        h('p', { class: 'lead' }, l.summary),
+        h('div', { class: 'goals card' }, h('b', null, 'By the end you will be able to:'), h('ul', null, l.goals.map((g) => h('li', null, g))))),
+      body,
+      h('section', { class: 'keypoints card' }, h('h3', null, 'Key points'), h('ul', null, l.keyPoints.map((k) => h('li', null, k)))),
+      quizBlock(l.quiz, l.id),
+      h('div', { class: 'lesson-nav' },
+        prev ? link(`#/learn/${prev.id}`, 'btn', '← ' + prev.title) : h('span'),
+        completeBtn,
+        nextL ? link(`#/learn/${nextL.id}`, 'btn primary', nextL.title + ' →') : link('#/practice', 'btn primary', 'Go practise →')));
+  }
+
+  function pageTools(id) {
+    if (id) {
+      const w = DE.widgets[id];
+      if (!w) return notice('warn', 'Calculator not found.');
+      const holder = h('div', { class: 'widget solo' });
+      DE.mountWidget(id, holder);
+      return h('div', null,
+        h('nav', { class: 'crumbs' }, link('#/tools', null, 'Calculators'), ' / ', w.title),
+        h('h2', null, w.title), h('p', { class: 'muted' }, w.summary), holder);
+    }
+    const groups = {};
+    for (const wid of DE.widgetOrder) {
+      const w = DE.widgets[wid];
+      if (w.group === 'Examples') continue;
+      (groups[w.group] = groups[w.group] || []).push(w);
+    }
+    return h('div', null,
+      h('h2', null, 'Calculators'),
+      h('p', { class: 'muted' }, 'Every calculator shows its working. Pick one to open it.'),
+      Object.entries(groups).map(([g, ws]) => h('section', null,
+        h('h3', { class: 'group' }, g),
+        h('div', { class: 'grid2' }, ws.map((w) => link(`#/tools/${w.id}`, 'card tool-card', h('div', { class: 'lc-title' }, w.title), h('p', { class: 'muted' }, w.summary)))))));
+  }
+
+  function pagePractice() {
+    const root = h('div', null);
+    DE.mountPractice(root);
+    return root;
+  }
+  function pageReference() {
+    const root = h('div', null);
+    DE.mountReference(root);
+    return root;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Router
+  // ---------------------------------------------------------------------------
+  const NAV = { learn: 'nav-learn', tools: 'nav-tools', practice: 'nav-practice', reference: 'nav-reference' };
+  function route() {
+    const parts = (window.location.hash || '#/').replace(/^#\/?/, '').split('/').filter(Boolean);
+    const [section, arg] = parts;
+    let node;
+    let title = 'DoseCalc EDU';
+    try {
+      switch (section) {
+        case undefined: node = pageHome(); break;
+        case 'learn': node = arg ? pageLesson(arg) : pageLearnIndex(); {
+          const l = DE.lessons.find((x) => x.id === arg);
+          title = (l ? l.title : 'Lessons') + ' · DoseCalc EDU';
+        } break;
+        case 'tools': node = pageTools(arg); title = 'Calculators · DoseCalc EDU'; break;
+        case 'practice': node = pagePractice(); title = 'Practice · DoseCalc EDU'; break;
+        case 'reference': node = pageReference(); title = 'Formulas & glossary · DoseCalc EDU'; break;
+        default: node = notice('warn', 'Page not found. Use the menu above.');
+      }
+    } catch (e) {
+      console.error(e);
+      node = notice('warn', 'Sorry, this page failed to load. Please reload.');
+    }
+    view.replaceChildren(node);
+    document.title = title;
+    for (const [k, id] of Object.entries(NAV)) {
+      const a = document.getElementById(id);
+      if (a) { a.classList.toggle('active', k === section); if (k === section) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); }
+    }
+    window.scrollTo(0, 0);
+    view.focus({ preventScroll: true });
+  }
+  window.addEventListener('hashchange', route);
+  route();
+})();
+
+</script>
+</body>
+</html>
