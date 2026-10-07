@@ -5,6 +5,11 @@
   const DE = window.DoseEdu;
   const { fr } = DE;
 
+  const C = window.DoseCalc;
+  const f4 = (x) => C.fix(x, 4);
+  const sc20 = C.scBreakdown(20);
+  const sp20 = C.spBreakdown(20);
+
   const formula = (html, caption) =>
     `<div class="formula">${html}${caption ? `<div class="formula-cap">${caption}</div>` : ''}</div>`;
   const callout = (kind, title, html) =>
@@ -42,15 +47,24 @@
       summary: 'Why a photon beam delivers less dose the deeper it goes, and how Percent Depth Dose (PDD) measures that.',
       goals: ['Describe build-up and dmax', 'Define PDD and use it', 'Know what changes the PDD curve'],
       blocks: [
-        '<h3>The shape of a photon beam in tissue</h3><p>A high-energy photon beam does <em>not</em> deposit its maximum dose at the skin. Instead:</p><ol><li><b>Build-up region:</b> dose rises over the first centimetre or two as electrons set in motion by the photons build up. This spares the skin.</li><li><b>dmax:</b> the depth of maximum dose. For a 6 MV beam it is about <b>1.5 cm</b>.</li><li><b>Fall-off:</b> deeper than dmax the beam is gradually absorbed and also spreads out, so the dose drops.</li></ol>',
+        '<h3>The shape of a photon beam in tissue</h3><p>A high-energy photon beam does <em>not</em> deposit its maximum dose at the skin. Instead:</p><ol><li><b>Build-up region:</b> dose rises over the first centimetre or two as electrons set in motion by the photons build up. This spares the skin.</li><li><b>dmax:</b> the depth of maximum dose. For a 6 MV beam it is about <b>1.5 cm</b>. It depends mostly on beam energy (about 0.5 cm for cobalt-60, over 3 cm for 18 MV) and shifts a little with field size and SSD.</li><li><b>Fall-off:</b> deeper than dmax the beam is gradually absorbed and also spreads out, so the dose drops.</li></ol>',
         '<h3>Percent Depth Dose (PDD)</h3><p>PDD answers one question: <em>"What percentage of the maximum dose reaches this depth?"</em></p>',
         formula(`PDD(d) = ${fr('Dose at depth d', 'Dose at dmax')} × 100 %`, 'Measured along the central axis, with the same field size and the same source-to-skin distance (SSD)'),
         callout('example', 'Example', 'At 10 cm depth a 6 MV beam has PDD ≈ 67 %. To deliver <b>200 cGy at 10 cm</b> we need <b>200 ÷ 0.67 ≈ 299 cGy at dmax</b>. The tissue near the surface gets about 50 % more than the tumour does. That is why real treatments combine several beams from different directions.'),
         '<h3>What changes the PDD?</h3><ul><li><b>Beam energy:</b> higher energy penetrates deeper, so higher PDD.</li><li><b>Field size:</b> larger fields produce more scatter, so higher PDD at depth.</li><li><b>SSD:</b> a longer SSD makes the inverse-square drop flatter, so higher PDD.</li></ul>',
-        '<h3>Explore it</h3><p>Move the sliders. The dashed line is the 10×10 cm, SSD 100 cm reference curve, so you can see exactly what each change does.</p>',
+        '<h3>Where does the curve come from?</h3><p>The curve is the product of four simple effects. You can see each one calculated in the explorer below.</p>',
+        formula('D(d) = B(d) × A(d) × ISL(d) × (1 + SPR)', 'Dose at depth d, before it is turned into a percentage'),
+        symbols([
+          ['B', 'Build-up. Dose rises from a low value at the skin as secondary electrons build up. Bigger for higher energy, so the peak is deeper.'],
+          ['A', 'Attenuation. Tissue absorbs and scatters part of the beam. The beam also becomes more penetrating with depth ("hardening") because soft photons go first.'],
+          ['ISL', 'Inverse square. The beam spreads out, so dose rate falls with distance from the source.'],
+          ['1 + SPR', 'Scatter. SPR is the scatter-to-primary ratio: extra dose scattered from nearby tissue. It grows with field size and depth.'],
+        ]),
+        callout('tip', 'Why does dmax move?', 'dmax is the depth where the rising build-up and the falling attenuation and inverse-square balance. Change the energy and the build-up changes a lot. Change the field size or the SSD and the balance shifts a little. Then <b>PDD = 100 × D(d) ÷ D(dmax)</b>.'),
+        '<h3>Explore it</h3><p>Pick a beam energy and move the sliders. The vertical line marks the actual dmax, and the dashed curve is the 10×10 cm, SSD 100 cm reference for the same energy, so you can see exactly what each change does. Open "Show how this curve is built" to follow the calculation.</p>',
         { widget: 'pdd-explorer' },
       ],
-      keyPoints: ['Dose peaks at dmax (about 1.5 cm for 6 MV) and falls beyond it.', 'PDD = dose at depth ÷ dose at dmax × 100 %.', 'Larger field, larger SSD or higher energy all increase PDD.'],
+      keyPoints: ['Dose peaks at dmax (about 1.5 cm for 6 MV) and falls beyond it.', 'dmax depends mainly on beam energy, and shifts slightly with field size and SSD.', 'PDD = dose at depth ÷ dose at dmax × 100 %.', 'Larger field, larger SSD or higher energy all increase PDD.'],
       quiz: [
         { q: 'What does "PDD = 67 % at 10 cm" mean?', options: ['67 % of the dose at dmax reaches 10 cm', '67 cGy is delivered at 10 cm', 'The beam is 67 % attenuated at the skin', 'The dose at 10 cm is 67 % of the prescription'], answer: 0, why: 'PDD compares the dose at depth with the maximum dose (at dmax) on the same beam axis.' },
         { q: 'You want 200 cGy at a depth where PDD is 80 %. What dose is delivered at dmax by that single beam?', options: ['160 cGy', '200 cGy', '250 cGy', '280 cGy'], answer: 2, why: 'Dose at dmax = 200 ÷ 0.80 = 250 cGy.' },
@@ -87,13 +101,18 @@
       blocks: [
         '<h3>Bigger field, more dose per MU</h3><p>When the opening is larger, more radiation scatters around. This increases the dose for the same number of monitor units. We measure this relative to the <b>10 × 10 cm reference field</b>, where the factor is exactly 1.000. Two effects add up:</p><ul><li><b>Sc (collimator scatter factor):</b> scatter produced in the machine head (flattening filter, collimators). Depends on the collimator opening.</li><li><b>Sp (phantom scatter factor):</b> scatter produced inside the patient. Depends on the irradiated field size at depth.</li></ul>',
         formula('Total output factor = Sc × Sp', 'Both equal 1.000 for a 10 × 10 cm field'),
+        '<h3>How are Sc and Sp calculated?</h3><p>Both factors are <b>ratios to the 10 × 10 cm field</b>: first work out a number for your field, then divide by the same number for 10 × 10.</p>',
+        formula(`Sc = ${fr('R(c)', 'R(10)')}      where   R(c) = 1 + h × (1 − e<sup>−c/τ</sup>)`, 'R is the radiation reading in air for a collimator opening c. h = 0.136 and τ = 12 cm describe how quickly head scatter saturates'),
+        formula(`Sp = ${fr('1 + SPR(s)', '1 + SPR(10)')}      where   SPR(s) = σ × (1 − e<sup>−s/τ</sup>) × (1 − e<sup>−d<sub>max</sub>/λ</sup>)`, 'SPR is the scatter-to-primary ratio at dmax. σ = 0.585, τ = 10 cm, λ = 8 cm'),
+        callout('example', `Worked example: a 20 × 20 cm field`, `<b>Sc:</b> R(20) = 1 + 0.136 × (1 − e<sup>−20/12</sup>) = 1 + 0.136 × ${f4(sc20.grow)} = ${f4(sc20.reading)}, and R(10) = ${f4(sc20.ref)}, so Sc = ${f4(sc20.reading)} ÷ ${f4(sc20.ref)} = <b>${f4(sc20.sc)}</b>.<br><b>Sp:</b> SPR(20) = 0.585 × ${f4(sp20.fieldTerm)} × ${f4(sp20.depthTerm)} = ${f4(sp20.spr)} and SPR(10) = ${f4(sp20.sprRef)}, so Sp = (1 + ${f4(sp20.spr)}) ÷ (1 + ${f4(sp20.sprRef)}) = <b>${f4(sp20.sp)}</b>.`),
+        callout('tip', 'Why the exponentials?', 'Scatter does not grow forever. The first few centimetres of extra field add a lot of scatter; later centimetres add less, because they are farther from the point and their scatter is mostly absorbed on the way. A curve of the form 1 − e<sup>−x</sup> captures exactly that "rise then flatten" shape.'),
         '<h3>Rectangles: the equivalent square</h3><p>Tables are for square fields. A rectangle of the same scatter behaviour is represented by its <b>equivalent square</b>:</p>',
         formula(`Equivalent square = ${fr('4 × Area', 'Perimeter')} = ${fr('2 × width × length', 'width + length')}`),
         callout('example', 'Example', 'A 10 × 20 cm field: Area = 200, Perimeter = 60, so 4 × 200 ÷ 60 = <b>13.3 cm</b>. It scatters like a 13.3 × 13.3 cm square, not like a 15 × 15.'),
         { widget: 'field-size' },
         callout('tip', 'Rule of thumb', '<b>Small field → output factor below 1 → more MU needed.</b> Large field → output factor above 1 → fewer MU needed.'),
       ],
-      keyPoints: ['Reference field is 10 × 10 cm, where Sc = Sp = 1.', 'Equivalent square = 4A ÷ P.', 'Smaller fields give less dose per MU, so need more MU.'],
+      keyPoints: ['Reference field is 10 × 10 cm, where Sc = Sp = 1.', 'Sc = R(c) ÷ R(10) from the head-scatter reading; Sp = (1 + SPR) ÷ (1 + SPR₁₀) from the scatter-to-primary ratio.', 'Equivalent square = 4A ÷ P.', 'Smaller fields give less dose per MU, so need more MU.'],
       quiz: [
         { q: 'What is the equivalent square of an 8 × 12 cm field?', options: ['9.6 cm', '10.0 cm', '8.0 cm', '20.0 cm'], answer: 0, why: '4 × (8 × 12) ÷ (2 × (8 + 12)) = 384 ÷ 40 = 9.6 cm.' },
         { q: 'Compared with the 10 × 10 reference field, a 4 × 4 cm field delivers per MU…', options: ['More dose, so fewer MU', 'Less dose, so more MU', 'The same dose', 'Depends only on depth'], answer: 1, why: 'Less scatter in small fields means lower output factors, so more MU are required for the same dose.' },

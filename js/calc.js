@@ -4,9 +4,17 @@
  * Pure functions with no DOM access, so the same code runs in the browser
  * (window.DoseCalc) and in Node (unit tests).
  *
- * IMPORTANT: the beam data below is GENERIC, ROUNDED teaching data that
- * resembles a 6 MV photon beam. It is NOT measured data for any real machine
- * and must never be used to treat patients.
+ * IMPORTANT: the beam model below is a GENERIC, SIMPLIFIED teaching model tuned to
+ * resemble typical photon beams. It is NOT measured data for any real machine and
+ * must never be used to treat patients.
+ *
+ * The model, in plain words
+ *   Depth dose   D(d) = build-up x attenuation x inverse-square x (1 + scatter/primary)
+ *   dmax         = the depth where D(d) is largest (found from the curve, not typed in)
+ *   PDD          = 100 x D(d) / D(dmax)
+ *   Sc           = head-scatter reading in air for this opening / same for 10x10
+ *   Sp           = (1 + SPR at dmax for this field) / (1 + SPR at dmax for 10x10)
+ *   TMR          = same as PDD but with the source distance held fixed (no inverse-square)
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
@@ -15,32 +23,38 @@
   'use strict';
 
   // ---------------------------------------------------------------------------
-  // Teaching beam data (generic 6 MV-like photons)
+  // Teaching beam model
   // ---------------------------------------------------------------------------
-  const DMAX = 1.5; // cm, depth of maximum dose
+  const DMAX = 1.5; // cm. Nominal dmax of the 6 MV reference beam (10x10, SSD 100); the calibration depth.
+  const REF_ENERGY = '6 MV';
   const LIMITS = { depthMax: 30, fieldMin: 3, fieldMax: 40, ssdMin: 50, ssdMax: 200 };
 
-  // Percent depth dose, 10x10 cm field, SSD = 100 cm.  [depth cm, PDD %]
-  const PDD_TABLE = [
-    [0, 35], [0.5, 79], [1, 93], [1.5, 100], [2, 98.4], [3, 94.6], [4, 90.6],
-    [5, 86.5], [6, 82.6], [8, 75.0], [10, 67.0], [12, 60.0], [15, 50.8],
-    [20, 38.4], [25, 29.1], [30, 22.0],
-  ];
-  // How much a field size different from 10x10 changes dose at depth.
-  // PDD(d, A) = PDD(d, 10x10) * (1 + slope(A) * (d - dmax) / 10)
-  const FIELD_SLOPE = [
-    [3, -0.048], [4, -0.04], [5, -0.032], [6, -0.025], [8, -0.012], [10, 0],
-    [12, 0.01], [15, 0.024], [20, 0.042], [25, 0.054], [30, 0.063], [40, 0.075],
-  ];
-  // Collimator scatter factor Sc and phantom scatter factor Sp vs equivalent square (cm)
-  const SC_TABLE = [
-    [3, 0.958], [4, 0.968], [5, 0.975], [6, 0.981], [8, 0.991], [10, 1.0],
-    [12, 1.007], [15, 1.016], [20, 1.03], [25, 1.039], [30, 1.045], [40, 1.052],
-  ];
-  const SP_TABLE = [
-    [3, 0.94], [4, 0.955], [5, 0.967], [6, 0.976], [8, 0.989], [10, 1.0],
-    [12, 1.008], [15, 1.017], [20, 1.025], [25, 1.031], [30, 1.035], [40, 1.04],
-  ];
+  // Photon beam energies, fitted to typical rounded 10x10 / SSD 100 data:
+  //   mu      = attenuation of the primary beam near the surface (per cm)
+  //   beta    = how steeply dose builds up over the first centimetres (per cm)
+  //   surface = relative dose at the skin for a 10x10 field, before build-up
+  const ENERGIES = {
+    'Co-60': { label: 'Cobalt-60 (1.25 MeV)', mu: 0.0663, beta: 9.62, surface: 0.45 },
+    '4 MV': { label: '4 MV', mu: 0.062, beta: 4.13, surface: 0.38 },
+    '6 MV': { label: '6 MV', mu: 0.0564, beta: 2.59, surface: 0.3 },
+    '10 MV': { label: '10 MV', mu: 0.0495, beta: 1.46, surface: 0.23 },
+    '15 MV': { label: '15 MV', mu: 0.0462, beta: 1.16, surface: 0.18 },
+    '18 MV': { label: '18 MV', mu: 0.0446, beta: 0.98, surface: 0.16 },
+  };
+  // Beam hardening: soft photons are removed first, so the beam penetrates better the deeper it goes.
+  // A(d) = (1 + d/L)^(-mu x L)   (becomes e^(-mu d) when L is very large)
+  const HARDENING_LENGTH = 60; // cm
+  // Electron contamination: bigger fields give more electrons near the skin, so the skin dose rises
+  // and the build-up gets steeper. Both change linearly with the field size relative to 10 cm.
+  const SURFACE_SLOPE = 0.01; // added to the surface dose per cm of equivalent square
+  const BUILDUP_SLOPE = 0.02; // fractional change of beta per cm of equivalent square
+
+  // Phantom (patient) scatter: SPR(d, s) = sigma x (1 - e^(-s/tau)) x (1 - e^(-d/lambda))
+  // The scatter-to-primary ratio grows with field size s and depth d, then saturates.
+  const SCATTER = { sigma: 0.585, tau: 10, lambda: 8 };
+  // Head scatter in air: R(c) = 1 + h x (1 - e^(-c/tau))
+  const HEAD = { h: 0.136, tau: 12 };
+
   const WEDGES = {
     none: { label: 'No wedge', factor: 1.0 },
     15: { label: '15° wedge', factor: 0.93 },
@@ -75,20 +89,6 @@
   // ---------------------------------------------------------------------------
   // Small helpers
   // ---------------------------------------------------------------------------
-  function interp(table, x, log) {
-    const first = table[0];
-    const last = table[table.length - 1];
-    if (x <= first[0]) return first[1];
-    if (x >= last[0]) return last[1];
-    let i = 0;
-    while (table[i + 1][0] < x) i++;
-    const [x0, y0] = table[i];
-    const [x1, y1] = table[i + 1];
-    const t = (x - x0) / (x1 - x0);
-    if (log) return Math.exp(Math.log(y0) + t * (Math.log(y1) - Math.log(y0)));
-    return y0 + t * (y1 - y0);
-  }
-
   /** Format a number: at most dp decimals, no trailing zeros. */
   function fmt(x, dp) {
     if (dp === undefined) dp = 2;
@@ -100,57 +100,242 @@
     if (typeof x !== 'number' || !isFinite(x)) return '—';
     return x.toFixed(dp);
   }
+  const exp = Math.exp;
+  const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 
   // ---------------------------------------------------------------------------
-  // Core physics
+  // Field geometry and the two scatter factors
   // ---------------------------------------------------------------------------
   function equivalentSquare(width, length) {
     return (4 * width * length) / (2 * (width + length)); // 4A/P
   }
 
-  function sc(es) { return interp(SC_TABLE, es); }
-  function sp(es) { return interp(SP_TABLE, es); }
+  // --- Collimator (head) scatter, Sc -----------------------------------------
+  const headReading = (c) => 1 + HEAD.h * (1 - exp(-c / HEAD.tau));
 
-  function inverseSquareFactor(d1, d2) { return Math.pow(d1 / d2, 2); }
+  /** Every number needed to show how Sc is calculated for collimator field c (cm). */
+  function scBreakdown(c) {
+    const reading = headReading(c);
+    const ref = headReading(10);
+    return {
+      c, h: HEAD.h, tau: HEAD.tau,
+      grow: 1 - exp(-c / HEAD.tau), growRef: 1 - exp(-10 / HEAD.tau),
+      reading, ref, sc: reading / ref,
+    };
+  }
+  function sc(c) { return headReading(c) / headReading(10); }
 
+  // --- Phantom scatter, Sp ----------------------------------------------------
+  /** Scatter-to-primary ratio at depth d (cm) for a field of equivalent square s (cm) at that depth. */
+  function scatterToPrimary(d, s) {
+    return SCATTER.sigma * (1 - exp(-s / SCATTER.tau)) * (1 - exp(-d / SCATTER.lambda));
+  }
+
+  /** Every number needed to show how Sp is calculated for a field s (cm) at the depth of dmax. */
+  function spBreakdown(s) {
+    const depthTerm = 1 - exp(-DMAX / SCATTER.lambda);
+    const fieldTerm = 1 - exp(-s / SCATTER.tau);
+    const fieldTermRef = 1 - exp(-10 / SCATTER.tau);
+    const spr = SCATTER.sigma * fieldTerm * depthTerm;
+    const sprRef = SCATTER.sigma * fieldTermRef * depthTerm;
+    return {
+      s, sigma: SCATTER.sigma, tau: SCATTER.tau, lambda: SCATTER.lambda, dmax: DMAX,
+      depthTerm, fieldTerm, fieldTermRef, spr, sprRef, sp: (1 + spr) / (1 + sprRef),
+    };
+  }
+  function sp(s) { return spBreakdown(s).sp; }
+
+  /** Ready-made step-by-step explanation of Sc for a collimator field c (cm). */
+  function scStep(c, title) {
+    const b = scBreakdown(c);
+    return {
+      title: title || 'Collimator scatter factor (Sc)',
+      formula: `Sc = R(c) ÷ R(10)      where   R(c) = 1 + h × (1 − e^(−c/τ))      [h = ${b.h}, τ = ${b.tau} cm]`,
+      work:
+        `R(${fmt(c, 2)}) = 1 + ${b.h} × (1 − e^(−${fmt(c, 2)}/${b.tau})) = 1 + ${b.h} × ${fix(b.grow, 4)} = ${fix(b.reading, 4)}\n` +
+        `R(10)   = 1 + ${b.h} × (1 − e^(−10/${b.tau})) = 1 + ${b.h} × ${fix(b.growRef, 4)} = ${fix(b.ref, 4)}\n` +
+        `Sc = ${fix(b.reading, 4)} ÷ ${fix(b.ref, 4)}`,
+      result: `Sc = ${fix(b.sc, 4)}`,
+      why: 'R is the radiation reading you would measure in air behind a small build-up cap. A wider opening lets more radiation scattered inside the machine head (filter, collimators) reach the point. The reading is divided by the 10 × 10 cm reading so that Sc = 1 for the reference field.',
+    };
+  }
+
+  /** Ready-made step-by-step explanation of Sp for a field s (cm) at the depth of dmax. */
+  function spStep(s, title) {
+    const b = spBreakdown(s);
+    return {
+      title: title || 'Phantom (patient) scatter factor (Sp)',
+      formula: `Sp = (1 + SPR(s)) ÷ (1 + SPR(10))      where   SPR(s) = σ × (1 − e^(−s/τ)) × (1 − e^(−dmax/λ))      [σ = ${b.sigma}, τ = ${b.tau} cm, λ = ${b.lambda} cm]`,
+      work:
+        `SPR(${fmt(s, 2)}) = ${b.sigma} × (1 − e^(−${fmt(s, 2)}/${b.tau})) × (1 − e^(−${fmt(DMAX)}/${b.lambda})) = ${b.sigma} × ${fix(b.fieldTerm, 4)} × ${fix(b.depthTerm, 4)} = ${fix(b.spr, 4)}\n` +
+        `SPR(10)   = ${b.sigma} × (1 − e^(−10/${b.tau})) × ${fix(b.depthTerm, 4)} = ${b.sigma} × ${fix(b.fieldTermRef, 4)} × ${fix(b.depthTerm, 4)} = ${fix(b.sprRef, 4)}\n` +
+        `Sp = (1 + ${fix(b.spr, 4)}) ÷ (1 + ${fix(b.sprRef, 4)})`,
+      result: `Sp = ${fix(b.sp, 4)}`,
+      why: 'SPR is the scatter-to-primary ratio: how much extra dose scattered from the surrounding tissue adds to the dose from the direct (primary) beam at dmax. A bigger field has more tissue around the point, so more scatter. The ratio to the 10 × 10 value makes Sp = 1 for the reference field.',
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Depth dose model, dmax, PDD and TMR
+  // ---------------------------------------------------------------------------
+  function energyOf(name) { return ENERGIES[name || REF_ENERGY] || ENERGIES[REF_ENERGY]; }
+
+  /** Surface dose and build-up steepness for a field of equivalent square es at the skin. */
+  function buildUpParams(es, E) {
+    return {
+      ds: clamp(E.surface + SURFACE_SLOPE * (es - 10), 0.05, 0.9),
+      beta: E.beta * clamp(1 + BUILDUP_SLOPE * (es - 10), 0.4, 3),
+    };
+  }
+  const attenuation = (d, E) => Math.pow(1 + d / HARDENING_LENGTH, -E.mu * HARDENING_LENGTH);
+
+  /**
+   * Un-normalised depth dose on the central axis.
+   * es = equivalent square of the field at the SKIN, ssd = source-to-skin distance.
+   */
+  function rawDose(depth, es, ssd, E) {
+    const { ds, beta } = buildUpParams(es, E);
+    const bu = 1 - (1 - ds) * exp(-beta * depth);
+    const att = attenuation(depth, E);
+    const isl = Math.pow(ssd / (ssd + depth), 2);
+    const fieldAtDepth = (es * (ssd + depth)) / ssd; // the beam diverges
+    const spr = scatterToPrimary(depth, fieldAtDepth);
+    return { depth, ds, beta, bu, att, isl, fieldAtDepth, spr, gain: 1 + spr, value: bu * att * isl * (1 + spr) };
+  }
+
+  /** Depth of the maximum of fn(d): coarse scan, then golden-section refinement. */
+  function findPeak(fn) {
+    const step = 0.05;
+    let best = 0;
+    let bd = step;
+    for (let d = step; d <= 9; d += step) {
+      const v = fn(d);
+      if (v > best) { best = v; bd = d; }
+    }
+    let a = Math.max(0.001, bd - step);
+    let b = bd + step;
+    const g = (Math.sqrt(5) - 1) / 2;
+    let c = b - g * (b - a);
+    let e = a + g * (b - a);
+    let fc = fn(c);
+    let fe = fn(e);
+    while (b - a > 1e-4) {
+      if (fc > fe) { b = e; e = c; fe = fc; c = b - g * (b - a); fc = fn(c); }
+      else { a = c; c = e; fc = fe; e = a + g * (b - a); fe = fn(e); }
+    }
+    return (a + b) / 2;
+  }
+
+  const peakCache = new Map();
+  /** Depth of maximum dose (cm) for a given equivalent square at the skin, SSD and energy. */
+  function dmaxFor(es, ssd, energy) {
+    const key = `${energy || REF_ENERGY}|${es.toFixed(3)}|${ssd.toFixed(2)}`;
+    let v = peakCache.get(key);
+    if (v === undefined) {
+      const E = energyOf(energy);
+      v = findPeak((d) => rawDose(d, es, ssd, E).value);
+      if (peakCache.size > 4000) peakCache.clear();
+      peakCache.set(key, v);
+    }
+    return v;
+  }
+
+  /** PDD (%) with every ingredient exposed so the lessons can explain each one. */
+  function pddBreakdown(depth, es, ssd, energy) {
+    if (ssd === undefined) ssd = 100;
+    const E = energyOf(energy);
+    const dmax = dmaxFor(es, ssd, energy);
+    const at = rawDose(depth, es, ssd, E);
+    const pk = rawDose(dmax, es, ssd, E);
+    return { pdd: Math.min(100, (100 * at.value) / pk.value), dmax, at, pk, energy: E };
+  }
+  function pdd(depth, es, ssd, energy) { return pddBreakdown(depth, es, ssd, energy).pdd; }
+
+  /** Mayneord F factor: approximate way to convert a PDD from SSD f1 to SSD f2. */
   function mayneordF(f1, f2, depth, dmax) {
     if (dmax === undefined) dmax = DMAX;
     if (depth <= dmax) return 1;
     return Math.pow((f2 + dmax) / (f2 + depth), 2) * Math.pow((f1 + depth) / (f1 + dmax), 2);
   }
 
-  /** PDD at SSD 100 cm for the 10x10 reference field. */
-  function pdd10(depth) {
-    if (depth <= DMAX) return interp(PDD_TABLE, depth, false);
-    return interp(PDD_TABLE, depth, true);
-  }
-
-  function fieldSizeFactor(es, depth) {
-    if (depth <= DMAX) return 1;
-    return 1 + (interp(FIELD_SLOPE, es) * (depth - DMAX)) / 10;
-  }
-
-  /** PDD (%) with the three adjustments shown separately so lessons can explain each one. */
-  function pddBreakdown(depth, es, ssd) {
-    if (ssd === undefined) ssd = 100;
-    const base = pdd10(depth);
-    const fs = fieldSizeFactor(es, depth);
-    const f = mayneordF(100, ssd, depth, DMAX);
-    return { base, fieldFactor: fs, mayneord: f, pdd: Math.min(100, base * fs * f) };
-  }
-  function pdd(depth, es, ssd) { return pddBreakdown(depth, es, ssd).pdd; }
+  function inverseSquareFactor(d1, d2) { return Math.pow(d1 / d2, 2); }
 
   /**
-   * Tissue-maximum ratio for a field of equivalent square `es` measured AT THE DEPTH of the point.
-   * Derived from PDD so the SSD and SAD techniques agree (Khan, Physics of Radiation Therapy):
-   *   TMR(d, rd) = PDD(d, skin field)/100 x ((100 + d) / (100 + dmax))^2 x Sp(rdmax) / Sp(rd)
-   * where, on an SSD = 100 cm basis, skin field = rd x 100/(100 + d) and rdmax = skin field x (100 + dmax)/100.
+   * Tissue-maximum ratio for a field of equivalent square `rd` measured AT THE DEPTH of the point.
+   * The source distance is the same for the point and the dmax point, so there is no inverse-square
+   * term: TMR is the tissue part of the depth-dose model, normalised to its own maximum.
    */
-  function tmr(depth, es) {
-    const skinField = (es * 100) / (100 + depth);
-    const fieldAtDmax = (skinField * (100 + DMAX)) / 100;
-    const geometry = Math.pow((100 + depth) / (100 + DMAX), 2);
-    return (pdd(depth, skinField, 100) / 100) * geometry * (sp(fieldAtDmax) / sp(es));
+  function tmr(depth, rd, energy) {
+    const E = energyOf(energy);
+    const { ds, beta } = buildUpParams(rd, E);
+    const tissue = (d) => (1 - (1 - ds) * exp(-beta * d)) * attenuation(d, E) * (1 + scatterToPrimary(d, rd));
+    return tissue(depth) / tissue(findPeak(tissue));
+  }
+
+  /** The full "how is this PDD built" explanation, one step per ingredient. */
+  function pddSteps(depth, es, ssd, energy) {
+    const b = pddBreakdown(depth, es, ssd, energy);
+    const E = b.energy;
+    const a = b.at;
+    const k = b.pk;
+    return [
+      {
+        title: '1. Field size at this depth',
+        formula: 's(d) = s(skin) × (SSD + d) ÷ SSD',
+        work: `${fmt(es, 2)} × (${fmt(ssd)} + ${fmt(depth, 2)}) ÷ ${fmt(ssd)}`,
+        result: `${fmt(a.fieldAtDepth, 2)} cm`,
+        why: 'The beam keeps spreading as it goes deeper, so the field is slightly bigger at depth than on the skin.',
+      },
+      {
+        title: '2. Build-up',
+        formula: `B(d) = 1 − (1 − Ds) × e^(−β d)      [Ds and β depend on beam energy and field size]`,
+        work: `Surface dose Ds = ${E.surface} + ${SURFACE_SLOPE} × (${fmt(es, 2)} − 10) = ${fix(a.ds, 3)}\n` +
+          `Steepness β = ${E.beta} × (1 + ${BUILDUP_SLOPE} × (${fmt(es, 2)} − 10)) = ${fix(a.beta, 3)} per cm\n` +
+          `B(${fmt(depth, 2)}) = 1 − (1 − ${fix(a.ds, 3)}) × e^(−${fix(a.beta, 3)} × ${fmt(depth, 2)}) = ${fix(a.bu, 4)}`,
+        result: `B = ${fix(a.bu, 4)}`,
+        why: 'High-energy photons set electrons in motion that deposit dose further along, so dose starts low at the skin (Ds) and builds up over the first centimetres. Higher energy means a slower build-up and a deeper peak. Bigger fields add more electrons near the skin, so the build-up is steeper and the peak slightly shallower.',
+      },
+      {
+        title: '3. Attenuation (with beam hardening)',
+        formula: `A(d) = (1 + d/L)^(−μ × L)      [μ = ${E.mu} per cm, L = ${HARDENING_LENGTH} cm]`,
+        work: `(1 + ${fmt(depth, 2)}/${HARDENING_LENGTH})^(−${E.mu} × ${HARDENING_LENGTH})`,
+        result: `A = ${fix(a.att, 4)}`,
+        why: 'Tissue absorbs and scatters part of the beam. Soft photons go first, so the beam becomes more penetrating with depth (beam hardening). Higher energy means a smaller μ and less loss.',
+      },
+      {
+        title: '4. Inverse square',
+        formula: 'ISL(d) = (SSD ÷ (SSD + d))²',
+        work: `(${fmt(ssd)} ÷ (${fmt(ssd)} + ${fmt(depth, 2)}))²`,
+        result: `ISL = ${fix(a.isl, 4)}`,
+        why: 'The beam spreads out from the source, so the dose rate drops with distance. A longer SSD makes this drop gentler.',
+      },
+      {
+        title: '5. Scatter from the patient',
+        formula: 'Gain = 1 + SPR(d, s)      with   SPR = σ × (1 − e^(−s/τ)) × (1 − e^(−d/λ))',
+        work: `SPR = ${SCATTER.sigma} × (1 − e^(−${fmt(a.fieldAtDepth, 2)}/${SCATTER.tau})) × (1 − e^(−${fmt(depth, 2)}/${SCATTER.lambda})) = ${fix(a.spr, 4)}\nGain = 1 + ${fix(a.spr, 4)}`,
+        result: `Gain = ${fix(a.gain, 4)}`,
+        why: 'Scattered radiation adds dose. More tissue (a bigger field, a deeper point) means more scatter. This is the same scatter idea that gives Sp.',
+      },
+      {
+        title: '6. Multiply the four ingredients',
+        formula: 'D(d) = B × A × ISL × Gain',
+        work: `${fix(a.bu, 4)} × ${fix(a.att, 4)} × ${fix(a.isl, 4)} × ${fix(a.gain, 4)}`,
+        result: `D(${fmt(depth, 2)} cm) = ${fix(a.value, 5)}`,
+      },
+      {
+        title: '7. Find dmax: the depth where D is largest',
+        formula: 'Scan D(d) over depth and take the peak',
+        work: `Peak of D at d = ${fmt(b.dmax, 2)} cm  →  D(dmax) = ${fix(k.value, 5)}`,
+        result: `dmax = ${fmt(b.dmax, 2)} cm`,
+        why: 'Build-up pushes the dose up and attenuation plus inverse square push it down. dmax is where they balance. Because the build-up depends on the field size and the inverse-square drop depends on the SSD, dmax shifts a little with both, and a lot with beam energy.',
+      },
+      {
+        title: '8. Percent depth dose',
+        formula: 'PDD = 100 × D(d) ÷ D(dmax)',
+        work: `100 × ${fix(a.value, 5)} ÷ ${fix(k.value, 5)}`,
+        result: `PDD = ${fmt(b.pdd, 2)} %`,
+      },
+    ];
   }
 
   // ---------------------------------------------------------------------------
@@ -187,6 +372,14 @@
     };
   }
 
+  const equivalentSquareStep = (width, length, es, why) => ({
+    title: '1. Find the equivalent square of the field',
+    formula: 'Equivalent square = 4 × Area ÷ Perimeter',
+    work: `4 × (${fmt(width)} × ${fmt(length)}) ÷ (2 × (${fmt(width)} + ${fmt(length)})) = ${fmt(4 * width * length)} ÷ ${fmt(2 * (width + length))}`,
+    result: `${fmt(es, 2)} cm`,
+    why,
+  });
+
   /** Monitor units for a fixed-SSD (SSD technique) single field. */
   function muSSD(input) {
     const err = validate(input, true);
@@ -195,15 +388,14 @@
     const { dose, depth, width, length, ssd } = input;
     const { wedge, tray } = modifiers(input);
 
-    const area = width * length;
-    const perim = 2 * (width + length);
     const es = equivalentSquare(width, length);
-    const coll = (es * 100) / ssd;
+    const coll = (es * 100) / ssd; // the field projected to 100 cm (collimator setting)
     const scV = sc(coll);
     const dist = ssd + DMAX;
     const esDmax = (es * dist) / ssd; // the beam keeps diverging below the skin
     const spV = sp(esDmax);
     const pb = pddBreakdown(depth, es, ssd);
+    const approx = pdd(depth, es, 100) * mayneordF(100, ssd, depth, DMAX); // Mayneord shortcut, for comparison
     const ref = refDistance(m);
     const isf = Math.pow(ref / dist, 2);
     const wf = wedge.factor;
@@ -214,33 +406,22 @@
     const doseDmax = mu * noPDD;
 
     const steps = [
-      {
-        title: '1. Find the equivalent square of the field',
-        formula: 'Equivalent square = 4 × Area ÷ Perimeter',
-        work: `4 × (${fmt(width)} × ${fmt(length)}) ÷ (2 × (${fmt(width)} + ${fmt(length)})) = ${fmt(4 * area)} ÷ ${fmt(perim)}`,
-        result: `${fmt(es, 2)} cm`,
-        why: 'Every rectangle is replaced by the square field that scatters radiation the same way. All tables are looked up with this number.',
-      },
-      {
-        title: '2. Collimator scatter factor (Sc)',
-        formula: 'Sc = value from table at the collimator field size (the field projected to 100 cm)',
-        work: `Collimator field = ${fmt(es, 2)} × 100 ÷ ${fmt(ssd)} = ${fmt(coll, 2)} cm  →  Sc(${fmt(coll, 1)} cm)`,
-        result: `Sc = ${fix(scV, 3)}`,
-        why: 'A bigger opening lets more scattered radiation escape from the machine head, so more dose per MU.',
-      },
-      {
-        title: '3. Phantom (patient) scatter factor (Sp)',
-        formula: 'Sp = value from table at the field size at the depth of dmax',
-        work: `Field at dmax = ${fmt(es, 2)} × ${fmt(dist, 1)} ÷ ${fmt(ssd)} = ${fmt(esDmax, 2)} cm  →  Sp(${fmt(esDmax, 1)} cm)`,
-        result: `Sp = ${fix(spV, 3)}`,
-        why: 'A bigger field puts more tissue in the beam, which scatters extra dose back to the point of interest.',
-      },
+      equivalentSquareStep(width, length, es, 'Every rectangle is replaced by the square field that scatters radiation the same way. Both scatter factors are calculated from this number.'),
+      Object.assign(scStep(coll, '2. Collimator scatter factor (Sc)'), {
+        work: `Collimator field = ${fmt(es, 2)} × 100 ÷ ${fmt(ssd)} = ${fmt(coll, 2)} cm  (the opening, projected to 100 cm)\n` + scStep(coll).work,
+      }),
+      Object.assign(spStep(esDmax, '3. Phantom (patient) scatter factor (Sp)'), {
+        work: `Field at dmax = ${fmt(es, 2)} × ${fmt(dist, 1)} ÷ ${fmt(ssd)} = ${fmt(esDmax, 2)} cm\n` + spStep(esDmax).work,
+      }),
       {
         title: '4. Percent depth dose (PDD)',
-        formula: 'PDD = PDD(10×10, SSD 100) × field-size adjustment × Mayneord F',
-        work: `${fmt(pb.base, 1)} × ${fix(pb.fieldFactor, 3)} × ${fix(pb.mayneord, 3)} = ${fmt(pb.pdd, 2)} %`,
+        formula: 'PDD = 100 × D(depth) ÷ D(dmax)      (open the PDD explorer to see D built step by step)',
+        work: `Field on skin ${fmt(es, 2)} cm, SSD ${fmt(ssd)} cm, depth ${fmt(depth)} cm\n` +
+          `D(${fmt(depth)} cm) = ${fix(pb.at.bu, 4)} × ${fix(pb.at.att, 4)} × ${fix(pb.at.isl, 4)} × ${fix(pb.at.gain, 4)} = ${fix(pb.at.value, 5)}\n` +
+          `D(dmax = ${fmt(pb.dmax, 2)} cm) = ${fix(pb.pk.value, 5)}\n` +
+          `PDD = 100 × ${fix(pb.at.value, 5)} ÷ ${fix(pb.pk.value, 5)}`,
         result: `PDD = ${fmt(pb.pdd, 2)} %`,
-        why: `At ${fmt(depth)} cm deep, only this percentage of the maximum dose reaches the point. Mayneord F = ${fix(pb.mayneord, 3)} corrects for SSD ≠ 100 cm.`,
+        why: `At ${fmt(depth)} cm deep only this percentage of the maximum dose arrives. Check: converting the SSD-100 PDD with the Mayneord F factor gives ${fmt(approx, 2)} %, a close match.`,
       },
       {
         title: '5. Inverse-square factor (ISF)',
@@ -282,7 +463,7 @@
       { symbol: 'TF', name: 'Tray', value: fix(tf, 3), note: tray.label },
     ];
     return Object.assign({ ok: true, technique: 'SSD', es, factors, steps }, summaryPair(mu, perMU, doseDmax, dose, m), {
-      parts: { scV, spV, pdd: pb.pdd, isf, wf, tf },
+      parts: { scV, spV, pdd: pb.pdd, isf, wf, tf, dmax: pb.dmax },
     });
   }
 
@@ -294,8 +475,6 @@
     const { dose, depth, width, length } = input;
     const { wedge, tray } = modifiers(input);
 
-    const area = width * length;
-    const perim = 2 * (width + length);
     const es = equivalentSquare(width, length);
     const scV = sc(es);
     const spV = sp(es);
@@ -309,29 +488,20 @@
     const doseDmax = mu * noTMR; // dose at dmax depth on the same ray at the same distance
 
     const steps = [
+      equivalentSquareStep(width, length, es, 'In the SAD technique the field size is defined at the isocentre (100 cm), which is where the dose point is.'),
+      Object.assign(scStep(es, '2. Collimator scatter factor (Sc)'), {
+        why: scStep(es).why + ' At the isocentre the collimator field and the field in the patient are the same size.',
+      }),
+      spStep(es, '3. Phantom (patient) scatter factor (Sp)'),
       {
-        title: '1. Find the equivalent square of the field at the isocentre',
-        formula: 'Equivalent square = 4 × Area ÷ Perimeter',
-        work: `4 × (${fmt(width)} × ${fmt(length)}) ÷ (2 × (${fmt(width)} + ${fmt(length)})) = ${fmt(4 * area)} ÷ ${fmt(perim)}`,
-        result: `${fmt(es, 2)} cm`,
-        why: 'In the SAD technique the field size is defined at the isocentre (100 cm), which is where the dose point is.',
-      },
-      {
-        title: '2. Collimator and phantom scatter factors',
-        formula: 'Sc and Sp = table values at the equivalent square',
-        work: `Sc(${fmt(es, 2)} cm) = ${fix(scV, 3)},  Sp(${fmt(es, 2)} cm) = ${fix(spV, 3)}`,
-        result: `Sc × Sp = ${fix(scV * spV, 4)}`,
-        why: 'Same idea as the SSD technique: bigger fields give more scatter, so more dose per MU.',
-      },
-      {
-        title: '3. Tissue-maximum ratio (TMR)',
-        formula: 'TMR = dose at depth ÷ dose at dmax, with the same distance from the source',
-        work: `TMR(depth ${fmt(depth)} cm, ${fmt(es, 2)} cm field)`,
+        title: '4. Tissue-maximum ratio (TMR)',
+        formula: 'TMR = T(depth) ÷ T(dmax)      where   T = build-up × attenuation × (1 + SPR)      (no inverse square)',
+        work: `Field at the point = ${fmt(es, 2)} cm, depth = ${fmt(depth)} cm\nTMR(${fmt(depth)} cm, ${fmt(es, 2)} cm)`,
         result: `TMR = ${fix(tmrV, 4)}`,
-        why: 'TMR only measures how the beam is attenuated by tissue. Because the distance is fixed, no inverse-square correction is needed.',
+        why: 'TMR only measures how the tissue weakens the beam. Because the source distance is the same for both points, no inverse-square correction is needed.',
       },
       {
-        title: '4. Wedge and tray factors',
+        title: '5. Wedge and tray factors',
         formula: 'WF = wedge factor, TF = tray factor',
         work: `${wedge.label}: WF = ${fix(wf, 3)};  ${tray.label}: TF = ${fix(tf, 3)}`,
         result: `WF × TF = ${fix(wf * tf, 3)}`,
@@ -340,7 +510,7 @@
     ];
     if (m.calibration === 'SSD') {
       steps.push({
-        title: '5. Calibration-distance factor',
+        title: '6. Calibration-distance factor',
         formula: 'Cal. factor = ((100 + dmax) ÷ 100)²',
         work: `((100 + ${fmt(DMAX)}) ÷ 100)² = ${fix(calFactor, 4)}`,
         result: `${fix(calFactor, 4)}`,
@@ -412,11 +582,12 @@
   }
 
   return {
-    DMAX, LIMITS, PDD_TABLE, SC_TABLE, SP_TABLE, FIELD_SLOPE, WEDGES, TRAYS, DEFAULT_MACHINE,
+    DMAX, REF_ENERGY, LIMITS, ENERGIES, SCATTER, HEAD, SURFACE_SLOPE, BUILDUP_SLOPE, HARDENING_LENGTH, WEDGES, TRAYS, DEFAULT_MACHINE,
     ISOTOPES, TIME_UNITS_DAYS, CO60_HALF_LIFE_YEARS,
-    interp, fmt, fix,
-    equivalentSquare, sc, sp, inverseSquareFactor, mayneordF,
-    pdd10, fieldSizeFactor, pddBreakdown, pdd, tmr,
+    fmt, fix,
+    equivalentSquare,
+    scBreakdown, sc, scStep, scatterToPrimary, spBreakdown, sp, spStep,
+    dmaxFor, pddBreakdown, pdd, pddSteps, mayneordF, inverseSquareFactor, tmr,
     muSSD, muSAD,
     bed, eqd2, equivalentDosePerFraction,
     remainingFraction, decayConstant, timeToFraction, co60Time,

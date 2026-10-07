@@ -171,9 +171,9 @@
     return h('div', { class: 'chips' }, items.map((i) =>
       h('div', { class: 'chip' }, h('div', { class: 'chip-v' }, i.value), h('div', { class: 'chip-l' }, i.label))));
   }
-  function stepsList(steps, open) {
+  function stepsList(steps, open, summary) {
     return h('details', { class: 'work', open: open === false ? null : true },
-      h('summary', null, 'Show your work, step by step'),
+      h('summary', null, summary || 'Show your work, step by step'),
       h('ol', { class: 'steps' }, steps.map((st) =>
         h('li', null,
           h('div', { class: 'step-title' }, st.title),
@@ -240,7 +240,7 @@
     const sample = (ser) => {
       if (ser.points) return ser.points;
       const pts = [];
-      const n = 160;
+      const n = 300;
       for (let i = 0; i <= n; i++) {
         const x = o.xmin + ((o.xmax - o.xmin) * i) / n;
         pts.push([x, ser.fn(x)]);

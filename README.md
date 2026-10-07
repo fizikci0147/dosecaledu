@@ -46,7 +46,9 @@ Progress, quiz scores and practice statistics are saved in your own browser (`lo
 - **Calibration:** 1.000 cGy per MU at dmax (1.5 cm), 10 × 10 cm field, with the dmax point 100 cm from the source. An SSD-type calibration (skin at 100 cm) can be selected under *Machine settings*.
 - **SSD technique:** `MU = D ÷ (K · Sc · Sp · PDD/100 · ISF · WF · TF)`
 - **SAD technique:** `MU = D ÷ (K · Sc · Sp · TMR · WF · TF)`
-- **TMR is derived from PDD** (`TMR = PDD/100 × ((100+d)/(100+dmax))² × Sp(r_dmax)/Sp(r_d)`), so the two techniques agree. The SAD calculator shows a cross-check against the equivalent SSD treatment.
+- **Depth dose is a smooth physical model, not a table:** `D(d) = build-up × attenuation × inverse-square × (1 + SPR)`. dmax is found as the peak of this curve, so it moves with beam energy (Co-60 0.5 cm to 18 MV 3.3 cm), field size and SSD. Parameters were fitted to typical rounded PDD data (6 MV, 10×10, SSD 100: PDD(10 cm) = 67 %).
+- **Sc and Sp are calculated, not looked up:** `Sc = R(c)/R(10)` with `R(c) = 1 + h(1 − e^(−c/τ))` (head scatter in air), and `Sp = (1 + SPR(s))/(1 + SPR(10))` with `SPR = σ(1 − e^(−s/τ))(1 − e^(−dmax/λ))` (scatter-to-primary ratio at dmax). Every step with numbers is shown in the calculators.
+- **TMR** is the tissue part of the same model (no inverse-square term), so the two techniques agree. The SAD calculator shows a cross-check against the equivalent SSD treatment (within 1 %).
 - **BED / EQD2:** simple linear-quadratic model (no repopulation term).
 
 ## Development
@@ -77,4 +79,4 @@ Remember to run `npm run build` and commit `dist/dosecalc-edu.html` after changi
 
 ### Using your own beam data
 
-All tables (PDD, Sc, Sp, wedge and tray factors, isotope half-lives) live at the top of `js/calc.js`. Replace the numbers to explore another machine. Remember that the app is for learning, not for patient treatment.
+The model parameters (energies, scatter constants, wedge and tray factors, isotope half-lives) live at the top of `js/calc.js`. Change the numbers to explore another machine. Remember that the app is for learning, not for patient treatment.

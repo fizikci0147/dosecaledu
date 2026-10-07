@@ -72,9 +72,10 @@
   // ===========================================================================
   // 2. Depth-dose explorer
   // ===========================================================================
-  reg('pdd-explorer', 'Depth-dose explorer', 'Drag depth, field size and SSD and watch the PDD curve respond.', 'Beam physics', (el) => {
+  reg('pdd-explorer', 'Depth-dose explorer', 'Change beam energy, field size and SSD and watch the curve, and its peak (dmax), respond.', 'Beam physics', (el) => {
     createTool(el, {
       fields: [
+        { key: 'energy', type: 'select', label: 'Beam energy', value: '6 MV', options: Object.entries(C.ENERGIES).map(([value, e]) => ({ value, label: e.label })) },
         { key: 'depth', label: 'Depth of the point', value: 10, unit: 'cm', min: 0, max: 30, step: 0.5, slider: true },
         { key: 'size', label: 'Field size (square)', value: 10, unit: 'cm × cm', min: 3, max: 40, step: 1, slider: true },
         { key: 'ssd', label: 'SSD (source-to-skin distance)', value: 100, unit: 'cm', min: 60, max: 150, step: 1, slider: true },
@@ -83,36 +84,42 @@
       compute(v) {
         if (!allNumbers(v, ['depth', 'size', 'ssd', 'rx'])) return NEED_NUMBERS;
         const d = Math.max(0, Math.min(30, v.depth));
-        const pb = C.pddBreakdown(d, v.size, v.ssd);
-        return { d, pb };
+        return { d, pb: C.pddBreakdown(d, v.size, v.ssd, v.energy) };
       },
       render(r, v) {
         const { d, pb } = r;
+        const refDmax = C.dmaxFor(10, 100, v.energy);
         const atDmax = v.rx / (pb.pdd / 100);
         const chart = lineChart({
           label: 'Percent depth dose versus depth',
           xmin: 0, xmax: 30, ymin: 0, ymax: 110, xlabel: 'Depth in tissue (cm)', ylabel: 'Dose (% of maximum)',
           series: [
-            { fn: (x) => C.pddBreakdown(x, v.size, v.ssd).pdd, cls: 's0', name: 'Your settings' },
-            { fn: (x) => C.pddBreakdown(x, 10, 100).pdd, cls: 's2', dashed: true, name: '10×10, SSD 100 (reference)' },
+            { fn: (x) => C.pdd(x, v.size, v.ssd, v.energy), cls: 's0', name: 'Your settings' },
+            { fn: (x) => C.pdd(x, 10, 100, v.energy), cls: 's2', dashed: true, name: '10×10, SSD 100 (reference)' },
           ],
-          vlines: [{ x: C.DMAX, label: 'dmax' }],
+          vlines: [{ x: pb.dmax, label: `dmax ${fmt(pb.dmax, 2)} cm` }],
           markers: [{ x: d, y: pb.pdd, label: `${fmt(pb.pdd, 1)} %` }],
           readout: (x, y) => `${fmt(x, 1)} cm → ${fmt(y, 1)} %`,
           yfmt: (y) => fmt(y, 0),
         });
-        const region = d < C.DMAX ? 'This point is in the build-up region: the dose is still rising toward dmax.'
-          : d === C.DMAX ? 'This is dmax, the depth of maximum dose (100 %).'
+        const moved = pb.dmax - refDmax;
+        const region = d < pb.dmax - 0.005 ? 'This point is in the build-up region: the dose is still rising toward dmax.'
+          : Math.abs(d - pb.dmax) <= 0.005 ? 'This is dmax, the depth of maximum dose (100 %).'
             : `Beyond dmax the beam is weakened as it passes through tissue, so only ${fmt(pb.pdd, 1)} % of the maximum dose arrives here.`;
+        const peakNote = Math.abs(moved) < 0.005
+          ? `dmax is ${fmt(pb.dmax, 2)} cm, the reference value for this energy.`
+          : `dmax is ${fmt(pb.dmax, 2)} cm, ${fmt(Math.abs(moved), 2)} cm ${moved > 0 ? 'deeper' : 'shallower'} than for the 10×10, SSD 100 reference (${fmt(refDmax, 2)} cm).`;
         return h('div', null,
           bigResult(`PDD at ${fmt(d, 1)} cm`, fmt(pb.pdd, 1), '%'),
           chips([
-            { label: `Dose needed at dmax for ${fmt(v.rx)} cGy at depth`, value: fmt(atDmax, 0) + ' cGy' },
+            { label: 'Depth of maximum dose (dmax)', value: fmt(pb.dmax, 2) + ' cm' },
+            { label: `Dose at dmax needed for ${fmt(v.rx)} cGy at depth`, value: fmt(atDmax, 0) + ' cGy' },
             { label: 'Extra dose at dmax vs. prescription', value: '+' + fmt((atDmax / v.rx - 1) * 100, 0) + ' %' },
           ]),
-          notice('info', region),
+          notice('info', `${region} ${peakNote}`),
           chart,
-          h('p', { class: 'muted small' }, 'Hover or tap the curve to read values. Try making the field larger, or moving the SSD out to 120 cm, and see the curve rise: more scatter and a flatter inverse-square drop both help.'));
+          h('p', { class: 'muted small' }, 'Hover or tap the curve to read values. Try each beam energy: the peak moves from 0.5 cm (cobalt) to over 3 cm (18 MV). Then try a bigger field or a longer SSD and watch the peak and the curve shift.'),
+          stepsList(C.pddSteps(d, v.size, v.ssd, v.energy), false, 'Show how this curve is built, step by step'));
       },
     });
   });
@@ -221,7 +228,7 @@
   // ===========================================================================
   // 5. Field size: equivalent square, Sc, Sp
   // ===========================================================================
-  reg('field-size', 'Field size & output factors', 'Equivalent square, collimator scatter (Sc) and phantom scatter (Sp).', 'Beam physics', (el) => {
+  reg('field-size', 'Field size & output factors', 'Equivalent square, and exactly how collimator scatter (Sc) and phantom scatter (Sp) are calculated.', 'Beam physics', (el) => {
     createTool(el, {
       fields: [
         { key: 'w', label: 'Field width', value: 10, unit: 'cm', min: 3, max: 40, step: 0.5, slider: true },
@@ -231,7 +238,7 @@
         if (!allNumbers(v, ['w', 'l'])) return NEED_NUMBERS;
         if (v.w < 3 || v.l < 3 || v.w > 40 || v.l > 40) return { error: 'Field dimensions must be between 3 and 40 cm.' };
         const es = C.equivalentSquare(v.w, v.l);
-        return { es, sc: C.sc(es), sp: C.sp(es) };
+        return { es, sc: C.sc(es), sp: C.sp(es), spb: C.spBreakdown(es) };
       },
       render(r, v) {
         const scp = r.sc * r.sp;
@@ -240,11 +247,13 @@
           h('div', { class: 'bar-track' }, h('div', { class: 'bar-fill', style: `width:${Math.max(2, Math.min(100, ((val - 0.9) / 0.2) * 100))}%` })),
           h('div', { class: 'bar-val' }, fix(val, 3)));
         const steps = [
-          { title: 'Equivalent square', formula: '4 × Area ÷ Perimeter', work: `4 × (${fmt(v.w)} × ${fmt(v.l)}) ÷ (2 × (${fmt(v.w)} + ${fmt(v.l)}))`, result: `${fmt(r.es, 2)} cm` },
-          { title: 'Look up Sc and Sp at this size', formula: 'Tables: Sc(ES), Sp(ES)', work: `Sc = ${fix(r.sc, 3)},  Sp = ${fix(r.sp, 3)}`, result: `Sc × Sp = ${fix(scp, 4)}`, why: 'Both factors are 1.000 for the 10×10 reference field.' },
+          { title: '1. Equivalent square', formula: '4 × Area ÷ Perimeter', work: `4 × (${fmt(v.w)} × ${fmt(v.l)}) ÷ (2 × (${fmt(v.w)} + ${fmt(v.l)}))`, result: `${fmt(r.es, 2)} cm`, why: 'Both scatter factors depend on the field size, and a rectangle is represented by the square that scatters the same way.' },
+          C.scStep(r.es, '2. Collimator scatter factor (Sc)'),
+          C.spStep(r.es, '3. Phantom scatter factor (Sp)'),
+          { title: '4. Total output factor', formula: 'Sc,p = Sc × Sp', work: `${fix(r.sc, 4)} × ${fix(r.sp, 4)}`, result: `Sc × Sp = ${fix(scp, 4)}`, why: 'Dose per MU, relative to the 10 × 10 cm reference field.' },
         ];
         const chart = lineChart({
-          label: 'Total output factor versus equivalent square',
+          label: 'Total output factor versus equivalent square', legendLeft: true,
           xmin: 3, xmax: 40, ymin: 0.9, ymax: 1.1, xlabel: 'Equivalent square (cm)', ylabel: 'Output factor',
           series: [
             { fn: (x) => C.sc(x) * C.sp(x), cls: 's0', name: 'Sc × Sp' },
@@ -255,6 +264,7 @@
           readout: (x, y) => `${fmt(x, 1)} cm → Sc×Sp ${fix(y, 3)}`,
           yfmt: (y) => fix(y, 2),
         });
+        const share = (r.spb.spr / (1 + r.spb.spr)) * 100;
         return h('div', null,
           bigResult('Equivalent square', fmt(r.es, 2), 'cm'),
           h('div', { class: 'bars' }, bar('Sc', r.sc), bar('Sp', r.sp), bar('Sc × Sp', scp)),
@@ -262,7 +272,15 @@
             ? `Each MU delivers ${fmt((1 - scp) * 100, 1)} % LESS dose than in the 10×10 reference field, so you need more MU for the same dose.`
             : scp > 1 ? `Each MU delivers ${fmt((scp - 1) * 100, 1)} % MORE dose than in the 10×10 reference field, so you need fewer MU for the same dose.`
               : 'This is the reference field size, so the output factors are exactly 1.'),
-          chart, stepsList(steps));
+          notice('info', `At dmax, about ${fmt(share, 1)} % of the dose in this field is scattered radiation from the surrounding tissue (scatter-to-primary ratio SPR = ${fix(r.spb.spr, 3)}). Scatter is what Sp measures.`),
+          stepsList(steps),
+          chart,
+          h('details', { class: 'work' },
+            h('summary', null, 'How are Sc and Sp measured in a real clinic?'),
+            h('div', { class: 'prose', html:
+              '<p><b>Sc</b> is measured <em>in air</em>: a small ionisation chamber with a build-up cap is placed on the beam axis and the collimator opening is changed. The reading at each opening divided by the reading at 10 × 10 cm is Sc. Only the machine head matters here, because there is no patient.</p>' +
+              '<p><b>Scp</b> is measured <em>in a water phantom</em> at dmax for each field size, again divided by the 10 × 10 reading. It contains both effects. <b>Sp = Scp ÷ Sc</b> then isolates the scatter coming from the phantom.</p>' +
+              '<p>In this app the readings are generated by two smooth formulas (shown in the steps above) that behave like real measurements: each extra centimetre of field adds less scatter than the one before, so the curves flatten for large fields.</p>' })));
       },
     });
   });
